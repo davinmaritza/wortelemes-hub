@@ -14,12 +14,14 @@ export interface ContactInfo {
 export interface SiteData {
   videos: Video[];
   aboutMe: string;
+  portfolio: string;
   contact: ContactInfo;
 }
 
 const DEFAULT_DATA: SiteData = {
   videos: [],
   aboutMe: "Welcome to my portfolio. I create amazing video content and designs.",
+  portfolio: "Here are some of my best works and projects.",
   contact: {
     email: "Feelsbrian@gmail.com",
     discord: "wortelemes"
@@ -35,9 +37,12 @@ export const getData = (): SiteData => {
   const stored = localStorage.getItem('wortelemes_data');
   if (stored) {
     const data = JSON.parse(stored);
-    // Ensure contact exists for backwards compatibility
+    // Ensure contact and portfolio exists for backwards compatibility
     if (!data.contact) {
       data.contact = DEFAULT_DATA.contact;
+    }
+    if (!data.portfolio) {
+      data.portfolio = DEFAULT_DATA.portfolio;
     }
     return data;
   }
@@ -67,6 +72,12 @@ export const deleteVideo = (id: string): void => {
 export const updateAboutMe = (text: string): void => {
   const data = getData();
   data.aboutMe = text;
+  saveData(data);
+};
+
+export const updatePortfolio = (text: string): void => {
+  const data = getData();
+  data.portfolio = text;
   saveData(data);
 };
 
