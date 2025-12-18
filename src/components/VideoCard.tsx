@@ -1,17 +1,21 @@
-import { useState } from 'react';
-import { Play, X } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { getYouTubeId, Video } from '@/lib/data';
 
 export interface VideoCardProps {
   video: Video;
   index?: number;
+  isActive?: boolean;
+  onVideoClick?: (videoId: string) => void;
 }
 
-const VideoCard = ({ video, index = 0 }: VideoCardProps) => {
-  const [isActive, setIsActive] = useState(false);
+const VideoCard = ({ video, index = 0, isActive = false, onVideoClick }: VideoCardProps) => {
   const { youtubeUrl, title, subtitle } = video;
   const videoId = getYouTubeId(youtubeUrl);
   const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
+
+  const handleClick = () => {
+    onVideoClick?.(video.id);
+  };
 
   return (
     <div 
@@ -20,41 +24,21 @@ const VideoCard = ({ video, index = 0 }: VideoCardProps) => {
     >
       <div 
         className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg"
-        onClick={() => setIsActive(!isActive)}
+        onClick={handleClick}
       >
-        {isActive && videoId ? (
-          <div className="relative w-full h-full">
-            <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-              title={title || 'Video'}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-            <button 
-              onClick={(e) => { e.stopPropagation(); setIsActive(false); }}
-              className="absolute top-2 right-2 bg-background/80 p-1 rounded-full hover:bg-background transition-colors"
-            >
-              <X className="w-4 h-4 text-foreground" />
-            </button>
+        <img 
+          src={thumbnailUrl} 
+          alt={title || 'Video thumbnail'}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+          }}
+        />
+        <div className={`absolute inset-0 bg-foreground/30 flex items-center justify-center transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+          <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center">
+            <Play className="w-6 h-6 text-foreground ml-1" />
           </div>
-        ) : (
-          <>
-            <img 
-              src={thumbnailUrl} 
-              alt={title || 'Video thumbnail'}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-              }}
-            />
-            <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center">
-                <Play className="w-6 h-6 text-foreground ml-1" />
-              </div>
-            </div>
-          </>
-        )}
+        </div>
       </div>
       {(title || subtitle) && (
         <div className="mt-3 text-center">
