@@ -4,6 +4,7 @@ import { getData, Video } from '@/lib/data';
 import logo from '@/assets/logo.png';
 import Header from '@/components/Header';
 import VideoCard from '@/components/VideoCard';
+import VideoPlayer from '@/components/VideoPlayer';
 import Footer from '@/components/Footer';
 
 const Index = () => {
@@ -13,6 +14,7 @@ const Index = () => {
   });
   const [videos, setVideos] = useState<Video[]>([]);
   const [aboutMe, setAboutMe] = useState('');
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   useEffect(() => {
     const data = getData();
@@ -24,6 +26,8 @@ const Index = () => {
     sessionStorage.setItem('site_entered', 'true');
     setHasEntered(true);
   };
+
+  const activeVideo = videos.find(v => v.id === activeVideoId);
 
   if (!hasEntered) {
     return <LoadingScreen onEnter={handleEnter} />;
@@ -56,7 +60,13 @@ const Index = () => {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {videos.map((video, index) => (
-                <VideoCard key={video.id} video={video} index={index} />
+                <VideoCard 
+                  key={video.id} 
+                  video={video} 
+                  index={index}
+                  isActive={activeVideoId === video.id}
+                  onVideoClick={(id) => setActiveVideoId(id)}
+                />
               ))}
             </div>
           </div>
@@ -64,6 +74,10 @@ const Index = () => {
       )}
 
       <Footer />
+
+      {activeVideo && (
+        <VideoPlayer video={activeVideo} onClose={() => setActiveVideoId(null)} />
+      )}
     </div>
   );
 };
