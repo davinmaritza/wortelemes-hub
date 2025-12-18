@@ -1,9 +1,9 @@
 const Footer = () => {
   return (
-    <footer className="py-8 bg-background border-t border-border">
+    <footer className="py-8 bg-white border-t border-gray-100">
       <div className="container mx-auto px-4 text-center">
-        <p className="text-muted-foreground text-sm">
-          © {new Date().getFullYear()} Wortelemes. All rights reserved.
+        <p className="text-gray-500 text-xs">
+          © {new Date().getFullYear()} Wortelemes
         </p>
       </div>
     </footer>
