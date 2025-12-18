@@ -206,18 +206,44 @@ const Admin = () => {
         {/* Video List */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="font-display">Manage Videos ({videos.length})</CardTitle>
+            <CardTitle className="font-display">Manage Videos ({videos.filter(v => v.type === 'video').length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {videos.length === 0 ? (
+            {videos.filter(v => v.type === 'video').length === 0 ? (
               <p className="text-muted-foreground text-center py-4 font-body">No videos added yet</p>
             ) : (
               <div className="space-y-3">
-                {videos.map((video) => (
+                {videos.filter(v => v.type === 'video').map((video) => (
                   <div key={video.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div>
                       <p className="font-body font-medium text-foreground">{video.title}</p>
-                      <p className="text-sm text-muted-foreground font-body">{video.subtitle || 'No subtitle'} • {video.type}</p>
+                      <p className="text-sm text-muted-foreground font-body">{video.subtitle || 'No subtitle'}</p>
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteVideo(video.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Portfolio List */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="font-display">Manage Portfolio ({videos.filter(v => v.type === 'portfolio').length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {videos.filter(v => v.type === 'portfolio').length === 0 ? (
+              <p className="text-muted-foreground text-center py-4 font-body">No portfolio items added yet</p>
+            ) : (
+              <div className="space-y-3">
+                {videos.filter(v => v.type === 'portfolio').map((video) => (
+                  <div key={video.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div>
+                      <p className="font-body font-medium text-foreground">{video.title}</p>
+                      <p className="text-sm text-muted-foreground font-body">{video.subtitle || 'No subtitle'}</p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteVideo(video.id)}>
                       <Trash2 className="w-4 h-4" />
