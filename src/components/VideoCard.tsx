@@ -26,7 +26,7 @@ const VideoCard = ({ video, index = 0 }: VideoCardProps) => {
           <div className="relative w-full h-full">
             <iframe
               src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
-              title={title}
+              title={title || 'Video'}
               className="w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -42,7 +42,7 @@ const VideoCard = ({ video, index = 0 }: VideoCardProps) => {
           <>
             <img 
               src={thumbnailUrl} 
-              alt={title}
+              alt={title || 'Video thumbnail'}
               className="w-full h-full object-cover"
               onError={(e) => {
                 (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
@@ -56,10 +56,12 @@ const VideoCard = ({ video, index = 0 }: VideoCardProps) => {
           </>
         )}
       </div>
-      <div className="mt-3 text-center">
-        <h3 className="text-foreground font-body font-medium text-sm">{title}</h3>
-        {subtitle && <p className="text-muted-foreground font-body text-xs">{subtitle}</p>}
-      </div>
+      {(title || subtitle) && (
+        <div className="mt-3 text-center">
+          {title && <h3 className="text-foreground font-body font-medium text-sm">{title}</h3>}
+          {subtitle && <p className="text-muted-foreground font-body text-xs">{subtitle}</p>}
+        </div>
+      )}
     </div>
   );
 };
