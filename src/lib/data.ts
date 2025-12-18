@@ -1,7 +1,7 @@
 export interface Video {
   id: string;
   youtubeUrl: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   type: 'video' | 'portfolio';
 }

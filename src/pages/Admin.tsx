@@ -68,13 +68,13 @@ const Admin = () => {
   };
 
   const handleAddVideo = () => {
-    if (!newVideo.youtubeUrl || !newVideo.title) {
-      toast({ title: 'Please fill in YouTube URL and Title', variant: 'destructive' });
+    if (!newVideo.youtubeUrl) {
+      toast({ title: 'Please fill in YouTube URL', variant: 'destructive' });
       return;
     }
     addVideo({
       youtubeUrl: newVideo.youtubeUrl,
-      title: newVideo.title,
+      title: newVideo.title || undefined,
       subtitle: newVideo.subtitle || undefined,
       type: 'video'
     });
@@ -173,7 +173,7 @@ const Admin = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="title" className="font-body">Title *</Label>
+                <Label htmlFor="title" className="font-body">Title (optional)</Label>
                 <Input
                   id="title"
                   value={newVideo.title}
@@ -212,7 +212,7 @@ const Admin = () => {
                 {videos.map((video) => (
                   <div key={video.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div>
-                      <p className="font-body font-medium text-foreground">{video.title}</p>
+                      <p className="font-body font-medium text-foreground">{video.title || 'Untitled'}</p>
                       <p className="text-sm text-muted-foreground font-body">{video.subtitle || 'No subtitle'}</p>
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => handleDeleteVideo(video.id)}>
