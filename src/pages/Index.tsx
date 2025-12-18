@@ -1,12 +1,38 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState, useEffect } from 'react';
+import LoadingScreen from '@/components/LoadingScreen';
+import Header from '@/components/Header';
+import HeroSection from '@/components/HeroSection';
+import VideoSection from '@/components/VideoSection';
+import ContactSection from '@/components/ContactSection';
+import Footer from '@/components/Footer';
+import { getData, Video } from '@/lib/data';
 
 const Index = () => {
+  const [hasEntered, setHasEntered] = useState(false);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [aboutMe, setAboutMe] = useState('');
+
+  useEffect(() => {
+    const data = getData();
+    setVideos(data.videos);
+    setAboutMe(data.aboutMe);
+  }, []);
+
+  const videoList = videos.filter(v => v.type === 'video');
+  const portfolioList = videos.filter(v => v.type === 'portfolio');
+
+  if (!hasEntered) {
+    return <LoadingScreen onEnter={() => setHasEntered(true)} />;
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header />
+      <HeroSection />
+      <VideoSection videos={videoList} title="Videos" id="videos" />
+      <VideoSection videos={portfolioList} title="Portfolio" id="portfolio" />
+      <ContactSection aboutMe={aboutMe} />
+      <Footer />
     </div>
   );
 };
