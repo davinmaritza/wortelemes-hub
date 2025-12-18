@@ -6,13 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 import { useToast } from '@/hooks/use-toast';
 import { 
   getData, 
   addVideo, 
   deleteVideo, 
-  updateAboutMe, 
+  updateAboutMe,
+  updatePortfolio,
   updateContact,
   isLoggedIn, 
   login, 
@@ -27,8 +28,9 @@ const Admin = () => {
   const [password, setPassword] = useState('');
   const [videos, setVideos] = useState<Video[]>([]);
   const [aboutMe, setAboutMe] = useState('');
+  const [portfolio, setPortfolio] = useState('');
   const [contact, setContact] = useState<ContactInfo>({ email: '', discord: '' });
-  const [newVideo, setNewVideo] = useState<{ youtubeUrl: string; title: string; subtitle: string; type: 'video' | 'portfolio' }>({ youtubeUrl: '', title: '', subtitle: '', type: 'video' });
+  const [newVideo, setNewVideo] = useState<{ youtubeUrl: string; title: string; subtitle: string }>({ youtubeUrl: '', title: '', subtitle: '' });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -43,6 +45,7 @@ const Admin = () => {
     const data = getData();
     setVideos(data.videos);
     setAboutMe(data.aboutMe);
+    setPortfolio(data.portfolio);
     setContact(data.contact);
   };
 
@@ -73,9 +76,9 @@ const Admin = () => {
       youtubeUrl: newVideo.youtubeUrl,
       title: newVideo.title,
       subtitle: newVideo.subtitle || undefined,
-      type: newVideo.type
+      type: 'video'
     });
-    setNewVideo({ youtubeUrl: '', title: '', subtitle: '', type: 'video' });
+    setNewVideo({ youtubeUrl: '', title: '', subtitle: '' });
     loadData();
     toast({ title: 'Video added successfully' });
   };
@@ -89,6 +92,11 @@ const Admin = () => {
   const handleSaveAboutMe = () => {
     updateAboutMe(aboutMe);
     toast({ title: 'About Me updated' });
+  };
+
+  const handleSavePortfolio = () => {
+    updatePortfolio(portfolio);
+    toast({ title: 'Portfolio updated' });
   };
 
   const handleSaveContact = () => {
@@ -184,18 +192,6 @@ const Admin = () => {
                   className="font-body"
                 />
               </div>
-              <div>
-                <Label htmlFor="type" className="font-body">Type</Label>
-                <Select value={newVideo.type} onValueChange={(value: 'video' | 'portfolio') => setNewVideo(prev => ({ ...prev, type: value }))}>
-                  <SelectTrigger className="font-body">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="video" className="font-body">Video</SelectItem>
-                    <SelectItem value="portfolio" className="font-body">Portfolio</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
             <Button onClick={handleAddVideo} className="font-body">
               <Plus className="w-4 h-4 mr-2" /> Add Video
@@ -206,14 +202,14 @@ const Admin = () => {
         {/* Video List */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="font-display">Manage Videos ({videos.filter(v => v.type === 'video').length})</CardTitle>
+            <CardTitle className="font-display">Manage Videos ({videos.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            {videos.filter(v => v.type === 'video').length === 0 ? (
+            {videos.length === 0 ? (
               <p className="text-muted-foreground text-center py-4 font-body">No videos added yet</p>
             ) : (
               <div className="space-y-3">
-                {videos.filter(v => v.type === 'video').map((video) => (
+                {videos.map((video) => (
                   <div key={video.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div>
                       <p className="font-body font-medium text-foreground">{video.title}</p>
@@ -229,29 +225,22 @@ const Admin = () => {
           </CardContent>
         </Card>
 
-        {/* Portfolio List */}
+        {/* Portfolio */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="font-display">Manage Portfolio ({videos.filter(v => v.type === 'portfolio').length})</CardTitle>
+            <CardTitle className="font-display">Portfolio</CardTitle>
           </CardHeader>
-          <CardContent>
-            {videos.filter(v => v.type === 'portfolio').length === 0 ? (
-              <p className="text-muted-foreground text-center py-4 font-body">No portfolio items added yet</p>
-            ) : (
-              <div className="space-y-3">
-                {videos.filter(v => v.type === 'portfolio').map((video) => (
-                  <div key={video.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                    <div>
-                      <p className="font-body font-medium text-foreground">{video.title}</p>
-                      <p className="text-sm text-muted-foreground font-body">{video.subtitle || 'No subtitle'}</p>
-                    </div>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteVideo(video.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+          <CardContent className="space-y-4">
+            <Textarea
+              value={portfolio}
+              onChange={(e) => setPortfolio(e.target.value)}
+              placeholder="Write about your portfolio..."
+              rows={5}
+              className="font-body"
+            />
+            <Button onClick={handleSavePortfolio} className="font-body">
+              <Save className="w-4 h-4 mr-2" /> Save Portfolio
+            </Button>
           </CardContent>
         </Card>
 
