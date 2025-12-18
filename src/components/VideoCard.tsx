@@ -1,23 +1,26 @@
+import { useState } from 'react';
 import { Play, X } from 'lucide-react';
-import { getYouTubeId } from '@/lib/data';
+import { getYouTubeId, Video } from '@/lib/data';
 
-interface VideoCardProps {
-  youtubeUrl: string;
-  title: string;
-  subtitle?: string;
-  isActive: boolean;
-  onToggle: () => void;
+export interface VideoCardProps {
+  video: Video;
+  index?: number;
 }
 
-const VideoCard = ({ youtubeUrl, title, subtitle, isActive, onToggle }: VideoCardProps) => {
+const VideoCard = ({ video, index = 0 }: VideoCardProps) => {
+  const [isActive, setIsActive] = useState(false);
+  const { youtubeUrl, title, subtitle } = video;
   const videoId = getYouTubeId(youtubeUrl);
   const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
 
   return (
-    <div className="group relative">
+    <div 
+      className="group relative opacity-0 animate-fade-in-up"
+      style={{ animationFillMode: 'forwards', animationDelay: `${index * 100}ms` }}
+    >
       <div 
-        className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg"
-        onClick={onToggle}
+        className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg"
+        onClick={() => setIsActive(!isActive)}
       >
         {isActive && videoId ? (
           <div className="relative w-full h-full">
@@ -29,10 +32,10 @@ const VideoCard = ({ youtubeUrl, title, subtitle, isActive, onToggle }: VideoCar
               allowFullScreen
             />
             <button 
-              onClick={(e) => { e.stopPropagation(); onToggle(); }}
-              className="absolute top-2 right-2 bg-white/80 p-1 rounded-full hover:bg-white transition-colors"
+              onClick={(e) => { e.stopPropagation(); setIsActive(false); }}
+              className="absolute top-2 right-2 bg-background/80 p-1 rounded-full hover:bg-background transition-colors"
             >
-              <X className="w-4 h-4 text-gray-800" />
+              <X className="w-4 h-4 text-foreground" />
             </button>
           </div>
         ) : (
@@ -45,17 +48,17 @@ const VideoCard = ({ youtubeUrl, title, subtitle, isActive, onToggle }: VideoCar
                 (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
               }}
             />
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center">
-                <Play className="w-6 h-6 text-gray-800 ml-1" />
+            <div className="absolute inset-0 bg-foreground/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center">
+                <Play className="w-6 h-6 text-foreground ml-1" />
               </div>
             </div>
           </>
         )}
       </div>
       <div className="mt-3 text-center">
-        <h3 className="text-gray-800 font-medium text-sm">{title}</h3>
-        {subtitle && <p className="text-gray-500 text-xs">{subtitle}</p>}
+        <h3 className="text-foreground font-body font-medium text-sm">{title}</h3>
+        {subtitle && <p className="text-muted-foreground font-body text-xs">{subtitle}</p>}
       </div>
     </div>
   );
