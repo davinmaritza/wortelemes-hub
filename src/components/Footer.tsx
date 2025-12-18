@@ -1,8 +1,8 @@
 const Footer = () => {
   return (
-    <footer className="py-8 bg-white border-t border-gray-100">
+    <footer className="py-10 bg-background">
       <div className="container mx-auto px-4 text-center">
-        <p className="text-gray-500 text-xs">
+        <p className="text-muted-foreground text-xs">
           © {new Date().getFullYear()} Wortelemes
         </p>
       </div>
