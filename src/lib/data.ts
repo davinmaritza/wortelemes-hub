@@ -6,14 +6,24 @@ export interface Video {
   type: 'video' | 'portfolio';
 }
 
+export interface ContactInfo {
+  email: string;
+  discord: string;
+}
+
 export interface SiteData {
   videos: Video[];
   aboutMe: string;
+  contact: ContactInfo;
 }
 
 const DEFAULT_DATA: SiteData = {
   videos: [],
-  aboutMe: "Welcome to my portfolio. I create amazing video content and designs."
+  aboutMe: "Welcome to my portfolio. I create amazing video content and designs.",
+  contact: {
+    email: "Feelsbrian@gmail.com",
+    discord: "wortelemes"
+  }
 };
 
 export const AUTH_CREDENTIALS = {
@@ -24,7 +34,12 @@ export const AUTH_CREDENTIALS = {
 export const getData = (): SiteData => {
   const stored = localStorage.getItem('wortelemes_data');
   if (stored) {
-    return JSON.parse(stored);
+    const data = JSON.parse(stored);
+    // Ensure contact exists for backwards compatibility
+    if (!data.contact) {
+      data.contact = DEFAULT_DATA.contact;
+    }
+    return data;
   }
   return DEFAULT_DATA;
 };
@@ -52,6 +67,12 @@ export const deleteVideo = (id: string): void => {
 export const updateAboutMe = (text: string): void => {
   const data = getData();
   data.aboutMe = text;
+  saveData(data);
+};
+
+export const updateContact = (contact: ContactInfo): void => {
+  const data = getData();
+  data.contact = contact;
   saveData(data);
 };
 
