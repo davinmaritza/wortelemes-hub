@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Plus, LogOut, Save } from 'lucide-react';
+import { Trash2, Plus, LogOut, Save, Image, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,22 +15,27 @@ import {
   updateAboutMe,
   updatePortfolio,
   updateContact,
+  addPortfolioItem,
+  deletePortfolioItem,
   isLoggedIn, 
   login, 
   logout,
-  Video,
-  ContactInfo
+  Video as VideoType,
+  ContactInfo,
+  PortfolioItem
 } from '@/lib/data';
 
 const Admin = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [videos, setVideos] = useState<VideoType[]>([]);
   const [aboutMe, setAboutMe] = useState('');
   const [portfolio, setPortfolio] = useState('');
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [contact, setContact] = useState<ContactInfo>({ email: '', discord: '' });
   const [newVideo, setNewVideo] = useState<{ youtubeUrl: string; title: string; subtitle: string }>({ youtubeUrl: '', title: '', subtitle: '' });
+  const [newPortfolioItem, setNewPortfolioItem] = useState<{ type: 'image' | 'video'; url: string; title: string; description: string }>({ type: 'image', url: '', title: '', description: '' });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -46,6 +51,7 @@ const Admin = () => {
     setVideos(data.videos);
     setAboutMe(data.aboutMe);
     setPortfolio(data.portfolio);
+    setPortfolioItems(data.portfolioItems);
     setContact(data.contact);
   };
 
@@ -97,6 +103,28 @@ const Admin = () => {
   const handleSavePortfolio = () => {
     updatePortfolio(portfolio);
     toast({ title: 'Portfolio updated' });
+  };
+
+  const handleAddPortfolioItem = () => {
+    if (!newPortfolioItem.url) {
+      toast({ title: 'Please fill in URL', variant: 'destructive' });
+      return;
+    }
+    addPortfolioItem({
+      type: newPortfolioItem.type,
+      url: newPortfolioItem.url,
+      title: newPortfolioItem.title || undefined,
+      description: newPortfolioItem.description || undefined
+    });
+    setNewPortfolioItem({ type: 'image', url: '', title: '', description: '' });
+    loadData();
+    toast({ title: 'Portfolio item added' });
+  };
+
+  const handleDeletePortfolioItem = (id: string) => {
+    deletePortfolioItem(id);
+    loadData();
+    toast({ title: 'Portfolio item deleted' });
   };
 
   const handleSaveContact = () => {
@@ -225,22 +253,117 @@ const Admin = () => {
           </CardContent>
         </Card>
 
-        {/* Portfolio */}
+        {/* Portfolio Text */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="font-display">Portfolio</CardTitle>
+            <CardTitle className="font-display">Portfolio Description</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
               value={portfolio}
               onChange={(e) => setPortfolio(e.target.value)}
               placeholder="Write about your portfolio..."
-              rows={5}
+              rows={3}
               className="font-body"
             />
             <Button onClick={handleSavePortfolio} className="font-body">
-              <Save className="w-4 h-4 mr-2" /> Save Portfolio
+              <Save className="w-4 h-4 mr-2" /> Save Description
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Add Portfolio Item */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="font-display">Add Portfolio Item</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-4 mb-4">
+              <Button
+                variant={newPortfolioItem.type === 'image' ? 'default' : 'outline'}
+                onClick={() => setNewPortfolioItem(prev => ({ ...prev, type: 'image' }))}
+                className="font-body"
+              >
+                <Image className="w-4 h-4 mr-2" /> Image
+              </Button>
+              <Button
+                variant={newPortfolioItem.type === 'video' ? 'default' : 'outline'}
+                onClick={() => setNewPortfolioItem(prev => ({ ...prev, type: 'video' }))}
+                className="font-body"
+              >
+                <Video className="w-4 h-4 mr-2" /> Video
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="portfolioUrl" className="font-body">
+                  {newPortfolioItem.type === 'image' ? 'Image URL *' : 'YouTube URL *'}
+                </Label>
+                <Input
+                  id="portfolioUrl"
+                  value={newPortfolioItem.url}
+                  onChange={(e) => setNewPortfolioItem(prev => ({ ...prev, url: e.target.value }))}
+                  placeholder={newPortfolioItem.type === 'image' ? 'https://example.com/image.jpg' : 'https://www.youtube.com/watch?v=...'}
+                  className="font-body"
+                />
+              </div>
+              <div>
+                <Label htmlFor="portfolioTitle" className="font-body">Title (optional)</Label>
+                <Input
+                  id="portfolioTitle"
+                  value={newPortfolioItem.title}
+                  onChange={(e) => setNewPortfolioItem(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Item title"
+                  className="font-body"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="portfolioDesc" className="font-body">Description (optional)</Label>
+                <Input
+                  id="portfolioDesc"
+                  value={newPortfolioItem.description}
+                  onChange={(e) => setNewPortfolioItem(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Brief description"
+                  className="font-body"
+                />
+              </div>
+            </div>
+            <Button onClick={handleAddPortfolioItem} className="font-body">
+              <Plus className="w-4 h-4 mr-2" /> Add Item
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Portfolio Items List */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="font-display">Portfolio Items ({portfolioItems.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {portfolioItems.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4 font-body">No portfolio items added yet</p>
+            ) : (
+              <div className="space-y-3">
+                {portfolioItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {item.type === 'image' ? (
+                        <Image className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <Video className="w-5 h-5 text-muted-foreground" />
+                      )}
+                      <div>
+                        <p className="font-body font-medium text-foreground">{item.title || 'Untitled'}</p>
+                        <p className="text-sm text-muted-foreground font-body truncate max-w-[300px]">{item.url}</p>
+                      </div>
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => handleDeletePortfolioItem(item.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
