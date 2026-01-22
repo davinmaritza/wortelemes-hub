@@ -6,6 +6,14 @@ export interface Video {
   type: 'video' | 'portfolio';
 }
 
+export interface PortfolioItem {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  title?: string;
+  description?: string;
+}
+
 export interface ContactInfo {
   email: string;
   discord: string;
@@ -15,6 +23,7 @@ export interface SiteData {
   videos: Video[];
   aboutMe: string;
   portfolio: string;
+  portfolioItems: PortfolioItem[];
   contact: ContactInfo;
 }
 
@@ -22,6 +31,7 @@ const DEFAULT_DATA: SiteData = {
   videos: [],
   aboutMe: "Welcome to my portfolio. I create amazing video content and designs.",
   portfolio: "Here are some of my best works and projects.",
+  portfolioItems: [],
   contact: {
     email: "Feelsbrian@gmail.com",
     discord: "wortelemes"
@@ -43,6 +53,9 @@ export const getData = (): SiteData => {
     }
     if (!data.portfolio) {
       data.portfolio = DEFAULT_DATA.portfolio;
+    }
+    if (!data.portfolioItems) {
+      data.portfolioItems = DEFAULT_DATA.portfolioItems;
     }
     return data;
   }
@@ -78,6 +91,22 @@ export const updateAboutMe = (text: string): void => {
 export const updatePortfolio = (text: string): void => {
   const data = getData();
   data.portfolio = text;
+  saveData(data);
+};
+
+export const addPortfolioItem = (item: Omit<PortfolioItem, 'id'>): void => {
+  const data = getData();
+  const newItem: PortfolioItem = {
+    ...item,
+    id: Date.now().toString()
+  };
+  data.portfolioItems.push(newItem);
+  saveData(data);
+};
+
+export const deletePortfolioItem = (id: string): void => {
+  const data = getData();
+  data.portfolioItems = data.portfolioItems.filter(p => p.id !== id);
   saveData(data);
 };
 
