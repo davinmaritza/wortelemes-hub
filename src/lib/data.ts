@@ -29,8 +29,8 @@ const DEFAULT_DATA: SiteData = {
 };
 
 export const AUTH_CREDENTIALS = {
-  username: "Wortelemes",
-  password: "%0|F?H@f!berhO3e"
+  username: "bukanfebrian",
+  password: "F!berhome.,"
 };
 
 export const getData = (): SiteData => {
