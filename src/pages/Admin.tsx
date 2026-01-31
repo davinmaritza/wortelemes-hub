@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EditPortfolioDialog from '@/components/admin/EditPortfolioDialog';
-
+import ChangePasswordDialog from '@/components/admin/ChangePasswordDialog';
 import { useToast } from '@/hooks/use-toast';
 import { 
   getData, 
@@ -176,7 +176,8 @@ const Admin = () => {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="font-display text-3xl text-foreground">Admin Panel</h1>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap justify-end">
+            <ChangePasswordDialog />
             <Button variant="outline" onClick={() => navigate('/')} className="font-body">View Site</Button>
             <Button variant="destructive" onClick={handleLogout} className="font-body">
               <LogOut className="w-4 h-4 mr-2" /> Logout
