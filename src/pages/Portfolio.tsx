@@ -2,6 +2,52 @@ import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { getData, getYouTubeId, PortfolioItem } from '@/lib/data';
+import { Play } from 'lucide-react';
+
+const PortfolioVideoCard = ({ item }: { item: PortfolioItem }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoId = getYouTubeId(item.url);
+  
+  if (!videoId) return null;
+
+  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  const fallbackThumbnail = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+
+  if (isPlaying) {
+    return (
+      <div className="aspect-video">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1`}
+          title={item.title || 'Portfolio video'}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="aspect-video relative cursor-pointer group"
+      onClick={() => setIsPlaying(true)}
+    >
+      <img 
+        src={thumbnailUrl}
+        alt={item.title || 'Video thumbnail'}
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          e.currentTarget.src = fallbackThumbnail;
+        }}
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+        <div className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Play className="w-8 h-8 text-white fill-white ml-1" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Portfolio = () => {
   const [portfolio, setPortfolio] = useState('');
@@ -45,15 +91,7 @@ const Portfolio = () => {
                     />
                   </div>
                 ) : (
-                  <div className="aspect-video">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${getYouTubeId(item.url)}`}
-                      title={item.title || 'Portfolio video'}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  </div>
+                  <PortfolioVideoCard item={item} />
                 )}
                 {(item.title || item.description) && (
                   <div className="p-4">
