@@ -40,7 +40,7 @@ const DEFAULT_DATA: SiteData = {
 
 export const AUTH_CREDENTIALS = {
   username: "bukanfebrian",
-  password: "F!berhome.,"
+  password: "Pebrihome.,"
 };
 
 export const getData = (): SiteData => {
