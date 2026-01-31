@@ -38,9 +38,23 @@ const DEFAULT_DATA: SiteData = {
   }
 };
 
-export const AUTH_CREDENTIALS = {
+const DEFAULT_AUTH = {
   username: "bukanfebrian",
   password: "Pebrihome.,"
+};
+
+export const getAuthCredentials = (): { username: string; password: string } => {
+  const stored = localStorage.getItem('wortelemes_auth');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  return DEFAULT_AUTH;
+};
+
+export const updatePassword = (newPassword: string): void => {
+  const auth = getAuthCredentials();
+  auth.password = newPassword;
+  localStorage.setItem('wortelemes_auth', JSON.stringify(auth));
 };
 
 export const getData = (): SiteData => {
@@ -135,7 +149,8 @@ export const isLoggedIn = (): boolean => {
 };
 
 export const login = (username: string, password: string): boolean => {
-  if (username === AUTH_CREDENTIALS.username && password === AUTH_CREDENTIALS.password) {
+  const auth = getAuthCredentials();
+  if (username === auth.username && password === auth.password) {
     sessionStorage.setItem('admin_logged_in', 'true');
     return true;
   }
