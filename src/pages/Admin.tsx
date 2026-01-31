@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import EditPortfolioDialog from '@/components/admin/EditPortfolioDialog';
 
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -357,9 +358,12 @@ const Admin = () => {
                         <p className="text-sm text-muted-foreground font-body truncate max-w-[300px]">{item.url}</p>
                       </div>
                     </div>
-                    <Button variant="destructive" size="sm" onClick={() => handleDeletePortfolioItem(item.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <EditPortfolioDialog item={item} onUpdate={loadData} />
+                      <Button variant="destructive" size="sm" onClick={() => handleDeletePortfolioItem(item.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

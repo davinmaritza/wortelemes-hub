@@ -110,6 +110,14 @@ export const deletePortfolioItem = (id: string): void => {
   saveData(data);
 };
 
+export const updatePortfolioItem = (id: string, updates: Partial<Omit<PortfolioItem, 'id'>>): void => {
+  const data = getData();
+  data.portfolioItems = data.portfolioItems.map(item => 
+    item.id === id ? { ...item, ...updates } : item
+  );
+  saveData(data);
+};
+
 export const updateContact = (contact: ContactInfo): void => {
   const data = getData();
   data.contact = contact;
