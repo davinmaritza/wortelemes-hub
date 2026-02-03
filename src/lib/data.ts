@@ -6,7 +6,41 @@ export interface Video {
   type: 'video' | 'portfolio';
 }
 
-export type PortfolioCategory = 'all' | 'VideoCommish' | 'GTACommish' | 'GTACommish/Vehicle' | 'GTACommish/Outfits';
+export type PortfolioCategory = string;
+
+export const DEFAULT_CATEGORIES: PortfolioCategory[] = [
+  'all',
+  'VideoCommish',
+  'GTACommish',
+  'GTACommish/Vehicle',
+  'GTACommish/Outfits'
+];
+
+export const getCategories = (): PortfolioCategory[] => {
+  const stored = localStorage.getItem('wortelemes_categories');
+  if (stored) {
+    return JSON.parse(stored);
+  }
+  return DEFAULT_CATEGORIES;
+};
+
+export const saveCategories = (categories: PortfolioCategory[]): void => {
+  localStorage.setItem('wortelemes_categories', JSON.stringify(categories));
+};
+
+export const addCategory = (category: PortfolioCategory): void => {
+  const categories = getCategories();
+  if (!categories.includes(category)) {
+    categories.push(category);
+    saveCategories(categories);
+  }
+};
+
+export const deleteCategory = (category: PortfolioCategory): void => {
+  const categories = getCategories();
+  const filtered = categories.filter(c => c !== category && c !== 'all');
+  saveCategories(['all', ...filtered]);
+};
 
 export interface PortfolioItem {
   id: string;

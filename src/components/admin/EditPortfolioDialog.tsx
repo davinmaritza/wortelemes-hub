@@ -3,6 +3,7 @@ import { Pencil, Image, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PortfolioItem, updatePortfolioItem } from '@/lib/data';
+import { PortfolioItem, PortfolioCategory, updatePortfolioItem, getCategories } from '@/lib/data';
 import { useToast } from '@/hooks/use-toast';
 
 interface EditPortfolioDialogProps {
@@ -18,23 +19,35 @@ interface EditPortfolioDialogProps {
   onUpdate: () => void;
 }
 
+const categoryLabels: Record<string, string> = {
+  'all': 'All',
+  'VideoCommish': 'Video Commish',
+  'GTACommish': 'GTA Commish',
+  'GTACommish/Vehicle': 'GTA Commish - Vehicle',
+  'GTACommish/Outfits': 'GTA Commish - Outfits',
+};
+
 const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
   const [open, setOpen] = useState(false);
+  const [categories, setCategories] = useState<PortfolioCategory[]>([]);
   const [editData, setEditData] = useState({
     type: item.type,
     url: item.url,
     title: item.title || '',
     description: item.description || '',
+    category: item.category || 'all',
   });
   const { toast } = useToast();
 
   useEffect(() => {
     if (open) {
+      setCategories(getCategories());
       setEditData({
         type: item.type,
         url: item.url,
         title: item.title || '',
         description: item.description || '',
+        category: item.category || 'all',
       });
     }
   }, [open, item]);
@@ -49,6 +62,7 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
       url: editData.url,
       title: editData.title || undefined,
       description: editData.description || undefined,
+      category: editData.category as PortfolioCategory,
     });
     toast({ title: 'Portfolio item updated' });
     setOpen(false);
@@ -104,6 +118,24 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
               placeholder="Item title"
               className="font-body"
             />
+          </div>
+          <div>
+            <Label htmlFor="editCategory" className="font-body">Category</Label>
+            <Select
+              value={editData.category}
+              onValueChange={(value) => setEditData(prev => ({ ...prev, category: value }))}
+            >
+              <SelectTrigger className="font-body">
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {categoryLabels[cat] || cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label htmlFor="editDesc" className="font-body">Description (optional)</Label>

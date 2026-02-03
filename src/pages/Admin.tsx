@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Plus, LogOut, Save, Image, Video } from 'lucide-react';
+import { Trash2, Plus, LogOut, Save, Image, Video, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +22,9 @@ import {
   isLoggedIn, 
   login, 
   logout,
+  getCategories,
+  addCategory,
+  deleteCategory,
   Video as VideoType,
   ContactInfo,
   PortfolioItem,
@@ -36,9 +39,11 @@ const Admin = () => {
   const [aboutMe, setAboutMe] = useState('');
   const [portfolio, setPortfolio] = useState('');
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [categories, setCategories] = useState<PortfolioCategory[]>([]);
   const [contact, setContact] = useState<ContactInfo>({ email: '', discord: '' });
   const [newVideo, setNewVideo] = useState<{ youtubeUrl: string; title: string; subtitle: string }>({ youtubeUrl: '', title: '', subtitle: '' });
   const [newPortfolioItem, setNewPortfolioItem] = useState<{ type: 'image' | 'video'; url: string; title: string; description: string; category: PortfolioCategory }>({ type: 'image', url: '', title: '', description: '', category: 'all' });
+  const [newCategory, setNewCategory] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -56,6 +61,7 @@ const Admin = () => {
     setPortfolio(data.portfolio);
     setPortfolioItems(data.portfolioItems);
     setContact(data.contact);
+    setCategories(getCategories());
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -277,6 +283,55 @@ const Admin = () => {
           </CardContent>
         </Card>
 
+        {/* Manage Categories */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="font-display">Manage Categories</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="New category name (e.g., Artwork or GTACommish/Mods)"
+                className="font-body flex-1"
+              />
+              <Button 
+                onClick={() => {
+                  if (newCategory.trim()) {
+                    addCategory(newCategory.trim());
+                    setNewCategory('');
+                    setCategories(getCategories());
+                    toast({ title: 'Category added' });
+                  }
+                }} 
+                className="font-body"
+              >
+                <FolderPlus className="w-4 h-4 mr-2" /> Add Category
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {categories.filter(c => c !== 'all').map((cat) => (
+                <div key={cat} className="flex items-center gap-1 bg-muted rounded-md px-3 py-1.5">
+                  <span className="text-sm font-body">{cat.replace('/', ' - ')}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => {
+                      deleteCategory(cat);
+                      setCategories(getCategories());
+                      toast({ title: 'Category deleted' });
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Add Portfolio Item */}
         <Card className="mb-8">
           <CardHeader>
@@ -332,11 +387,11 @@ const Admin = () => {
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="VideoCommish">Video Commish</SelectItem>
-                    <SelectItem value="GTACommish">GTA Commish</SelectItem>
-                    <SelectItem value="GTACommish/Vehicle">GTA Commish - Vehicle</SelectItem>
-                    <SelectItem value="GTACommish/Outfits">GTA Commish - Outfits</SelectItem>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat === 'all' ? 'All' : cat.replace('/', ' - ')}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
