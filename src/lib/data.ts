@@ -6,12 +6,15 @@ export interface Video {
   type: 'video' | 'portfolio';
 }
 
+export type PortfolioCategory = 'all' | 'VideoCommish' | 'GTACommish' | 'GTACommish/Vehicle' | 'GTACommish/Outfits';
+
 export interface PortfolioItem {
   id: string;
   type: 'image' | 'video';
   url: string;
   title?: string;
   description?: string;
+  category?: PortfolioCategory;
 }
 
 export interface ContactInfo {

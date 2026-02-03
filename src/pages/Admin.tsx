@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import EditPortfolioDialog from '@/components/admin/EditPortfolioDialog';
 import ChangePasswordDialog from '@/components/admin/ChangePasswordDialog';
 import { useToast } from '@/hooks/use-toast';
@@ -23,7 +24,8 @@ import {
   logout,
   Video as VideoType,
   ContactInfo,
-  PortfolioItem
+  PortfolioItem,
+  PortfolioCategory
 } from '@/lib/data';
 
 const Admin = () => {
@@ -36,7 +38,7 @@ const Admin = () => {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
   const [contact, setContact] = useState<ContactInfo>({ email: '', discord: '' });
   const [newVideo, setNewVideo] = useState<{ youtubeUrl: string; title: string; subtitle: string }>({ youtubeUrl: '', title: '', subtitle: '' });
-  const [newPortfolioItem, setNewPortfolioItem] = useState<{ type: 'image' | 'video'; url: string; title: string; description: string }>({ type: 'image', url: '', title: '', description: '' });
+  const [newPortfolioItem, setNewPortfolioItem] = useState<{ type: 'image' | 'video'; url: string; title: string; description: string; category: PortfolioCategory }>({ type: 'image', url: '', title: '', description: '', category: 'all' });
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -115,9 +117,10 @@ const Admin = () => {
       type: newPortfolioItem.type,
       url: newPortfolioItem.url,
       title: newPortfolioItem.title || undefined,
-      description: newPortfolioItem.description || undefined
+      description: newPortfolioItem.description || undefined,
+      category: newPortfolioItem.category
     });
-    setNewPortfolioItem({ type: 'image', url: '', title: '', description: '' });
+    setNewPortfolioItem({ type: 'image', url: '', title: '', description: '', category: 'all' });
     loadData();
     toast({ title: 'Portfolio item added' });
   };
@@ -319,7 +322,25 @@ const Admin = () => {
                   className="font-body"
                 />
               </div>
-              <div className="md:col-span-2">
+              <div>
+                <Label htmlFor="portfolioCategory" className="font-body">Category</Label>
+                <Select
+                  value={newPortfolioItem.category}
+                  onValueChange={(value: PortfolioCategory) => setNewPortfolioItem(prev => ({ ...prev, category: value }))}
+                >
+                  <SelectTrigger className="font-body">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="VideoCommish">Video Commish</SelectItem>
+                    <SelectItem value="GTACommish">GTA Commish</SelectItem>
+                    <SelectItem value="GTACommish/Vehicle">GTA Commish - Vehicle</SelectItem>
+                    <SelectItem value="GTACommish/Outfits">GTA Commish - Outfits</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label htmlFor="portfolioDesc" className="font-body">Description (optional)</Label>
                 <Input
                   id="portfolioDesc"
