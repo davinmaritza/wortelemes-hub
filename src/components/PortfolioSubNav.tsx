@@ -1,4 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useMemo } from 'react';
+import { getCategories } from '@/lib/data';
 
 interface SubNavItem {
   label: string;
@@ -6,21 +8,55 @@ interface SubNavItem {
   children?: SubNavItem[];
 }
 
-const portfolioCategories: SubNavItem[] = [
-  { label: 'All', path: '/portfolio' },
-  { label: 'Video Commish', path: '/portfolio/VideoCommish' },
-  { 
-    label: 'GTA Commish', 
-    path: '/portfolio/GTACommish',
-    children: [
-      { label: 'Vehicle', path: '/portfolio/GTACommish/Vehicle' },
-      { label: 'Outfits', path: '/portfolio/GTACommish/Outfits' },
-    ]
-  },
-];
-
 const PortfolioSubNav = () => {
   const location = useLocation();
+  
+  const portfolioCategories = useMemo(() => {
+    const categories = getCategories();
+    const navItems: SubNavItem[] = [{ label: 'All', path: '/portfolio' }];
+    
+    // Group categories by parent
+    const parentMap = new Map<string, SubNavItem>();
+    
+    categories.forEach(cat => {
+      if (cat === 'all') return;
+      
+      if (cat.includes('/')) {
+        // This is a subcategory
+        const [parent, child] = cat.split('/');
+        if (!parentMap.has(parent)) {
+          parentMap.set(parent, {
+            label: parent.replace(/([A-Z])/g, ' $1').trim(),
+            path: `/portfolio/${parent}`,
+            children: []
+          });
+        }
+        parentMap.get(parent)!.children!.push({
+          label: child.replace(/([A-Z])/g, ' $1').trim(),
+          path: `/portfolio/${cat}`
+        });
+      } else {
+        // This is a parent category
+        if (!parentMap.has(cat)) {
+          parentMap.set(cat, {
+            label: cat.replace(/([A-Z])/g, ' $1').trim(),
+            path: `/portfolio/${cat}`,
+            children: []
+          });
+        }
+      }
+    });
+    
+    // Convert map to array and clean up empty children
+    parentMap.forEach((item) => {
+      if (item.children && item.children.length === 0) {
+        delete item.children;
+      }
+      navItems.push(item);
+    });
+    
+    return navItems;
+  }, []);
   
   const isActive = (path: string) => {
     if (path === '/portfolio') {
