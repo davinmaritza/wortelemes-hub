@@ -11,6 +11,7 @@ interface SubNavItem {
 const PortfolioSubNav = () => {
   const location = useLocation();
   
+  // Re-fetch categories on every render to ensure they're always up-to-date
   const portfolioCategories = useMemo(() => {
     const categories = getCategories();
     const navItems: SubNavItem[] = [{ label: 'All', path: '/portfolio' }];
@@ -56,7 +57,7 @@ const PortfolioSubNav = () => {
     });
     
     return navItems;
-  }, []);
+  }, [location.pathname]); // Re-compute when pathname changes to pick up new categories
   
   const isActive = (path: string) => {
     if (path === '/portfolio') {
