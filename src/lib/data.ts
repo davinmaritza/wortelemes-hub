@@ -3,21 +3,24 @@ export interface Video {
   youtubeUrl: string;
   title?: string;
   subtitle?: string;
-  type: 'video' | 'portfolio';
+  type: "video" | "portfolio";
 }
 
 export type PortfolioCategory = string;
 
 export const DEFAULT_CATEGORIES: PortfolioCategory[] = [
-  'all',
-  'VideoCommish',
-  'GTACommish',
-  'GTACommish/Vehicle',
-  'GTACommish/Outfits'
+  "all",
+  "VideoCommish",
+  "GTACommish",
+  "GTACommish/Vehicle",
+  "GTACommish/Outfits",
 ];
 
+const isBrowser = typeof window !== "undefined";
+
 export const getCategories = (): PortfolioCategory[] => {
-  const stored = localStorage.getItem('wortelemes_categories');
+  if (!isBrowser) return DEFAULT_CATEGORIES;
+  const stored = localStorage.getItem("wortelemes_categories");
   if (stored) {
     return JSON.parse(stored);
   }
@@ -25,7 +28,8 @@ export const getCategories = (): PortfolioCategory[] => {
 };
 
 export const saveCategories = (categories: PortfolioCategory[]): void => {
-  localStorage.setItem('wortelemes_categories', JSON.stringify(categories));
+  if (!isBrowser) return;
+  localStorage.setItem("wortelemes_categories", JSON.stringify(categories));
 };
 
 export const addCategory = (category: PortfolioCategory): void => {
@@ -38,13 +42,13 @@ export const addCategory = (category: PortfolioCategory): void => {
 
 export const deleteCategory = (category: PortfolioCategory): void => {
   const categories = getCategories();
-  const filtered = categories.filter(c => c !== category && c !== 'all');
-  saveCategories(['all', ...filtered]);
+  const filtered = categories.filter((c) => c !== category && c !== "all");
+  saveCategories(["all", ...filtered]);
 };
 
 export interface PortfolioItem {
   id: string;
-  type: 'image' | 'video';
+  type: "image" | "video";
   url: string;
   title?: string;
   description?: string;
@@ -66,22 +70,27 @@ export interface SiteData {
 
 const DEFAULT_DATA: SiteData = {
   videos: [],
-  aboutMe: "Welcome to my portfolio. I create amazing video content and designs.",
+  aboutMe:
+    "Welcome to my portfolio. I create amazing video content and designs.",
   portfolio: "Here are some of my best works and projects.",
   portfolioItems: [],
   contact: {
     email: "Feelsbrian@gmail.com",
-    discord: "wortelemes"
-  }
+    discord: "wortelemes",
+  },
 };
 
 const DEFAULT_AUTH = {
   username: "bukanfebrian",
-  password: "Pebrihome.,"
+  password: "Pebrihome.,",
 };
 
-export const getAuthCredentials = (): { username: string; password: string } => {
-  const stored = localStorage.getItem('wortelemes_auth');
+export const getAuthCredentials = (): {
+  username: string;
+  password: string;
+} => {
+  if (!isBrowser) return DEFAULT_AUTH;
+  const stored = localStorage.getItem("wortelemes_auth");
   if (stored) {
     return JSON.parse(stored);
   }
@@ -89,13 +98,15 @@ export const getAuthCredentials = (): { username: string; password: string } => 
 };
 
 export const updatePassword = (newPassword: string): void => {
+  if (!isBrowser) return;
   const auth = getAuthCredentials();
   auth.password = newPassword;
-  localStorage.setItem('wortelemes_auth', JSON.stringify(auth));
+  localStorage.setItem("wortelemes_auth", JSON.stringify(auth));
 };
 
 export const getData = (): SiteData => {
-  const stored = localStorage.getItem('wortelemes_data');
+  if (!isBrowser) return DEFAULT_DATA;
+  const stored = localStorage.getItem("wortelemes_data");
   if (stored) {
     const data = JSON.parse(stored);
     // Ensure contact and portfolio exists for backwards compatibility
@@ -114,14 +125,15 @@ export const getData = (): SiteData => {
 };
 
 export const saveData = (data: SiteData): void => {
-  localStorage.setItem('wortelemes_data', JSON.stringify(data));
+  if (!isBrowser) return;
+  localStorage.setItem("wortelemes_data", JSON.stringify(data));
 };
 
-export const addVideo = (video: Omit<Video, 'id'>): void => {
+export const addVideo = (video: Omit<Video, "id">): void => {
   const data = getData();
   const newVideo: Video = {
     ...video,
-    id: Date.now().toString()
+    id: Date.now().toString(),
   };
   data.videos.push(newVideo);
   saveData(data);
@@ -129,7 +141,7 @@ export const addVideo = (video: Omit<Video, 'id'>): void => {
 
 export const deleteVideo = (id: string): void => {
   const data = getData();
-  data.videos = data.videos.filter(v => v.id !== id);
+  data.videos = data.videos.filter((v) => v.id !== id);
   saveData(data);
 };
 
@@ -145,11 +157,11 @@ export const updatePortfolio = (text: string): void => {
   saveData(data);
 };
 
-export const addPortfolioItem = (item: Omit<PortfolioItem, 'id'>): void => {
+export const addPortfolioItem = (item: Omit<PortfolioItem, "id">): void => {
   const data = getData();
   const newItem: PortfolioItem = {
     ...item,
-    id: Date.now().toString()
+    id: Date.now().toString(),
   };
   data.portfolioItems.push(newItem);
   saveData(data);
@@ -157,14 +169,17 @@ export const addPortfolioItem = (item: Omit<PortfolioItem, 'id'>): void => {
 
 export const deletePortfolioItem = (id: string): void => {
   const data = getData();
-  data.portfolioItems = data.portfolioItems.filter(p => p.id !== id);
+  data.portfolioItems = data.portfolioItems.filter((p) => p.id !== id);
   saveData(data);
 };
 
-export const updatePortfolioItem = (id: string, updates: Partial<Omit<PortfolioItem, 'id'>>): void => {
+export const updatePortfolioItem = (
+  id: string,
+  updates: Partial<Omit<PortfolioItem, "id">>,
+): void => {
   const data = getData();
-  data.portfolioItems = data.portfolioItems.map(item => 
-    item.id === id ? { ...item, ...updates } : item
+  data.portfolioItems = data.portfolioItems.map((item) =>
+    item.id === id ? { ...item, ...updates } : item,
   );
   saveData(data);
 };
@@ -176,24 +191,29 @@ export const updateContact = (contact: ContactInfo): void => {
 };
 
 export const getYouTubeId = (url: string): string | null => {
-  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const regex =
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
   const match = url.match(regex);
   return match ? match[1] : null;
 };
 
 export const isLoggedIn = (): boolean => {
-  return sessionStorage.getItem('admin_logged_in') === 'true';
+  if (!isBrowser) return false;
+  return sessionStorage.getItem("admin_logged_in") === "true";
 };
 
 export const login = (username: string, password: string): boolean => {
   const auth = getAuthCredentials();
   if (username === auth.username && password === auth.password) {
-    sessionStorage.setItem('admin_logged_in', 'true');
+    if (isBrowser) {
+      sessionStorage.setItem("admin_logged_in", "true");
+    }
     return true;
   }
   return false;
 };
 
 export const logout = (): void => {
-  sessionStorage.removeItem('admin_logged_in');
+  if (!isBrowser) return;
+  sessionStorage.removeItem("admin_logged_in");
 };
