@@ -31,3 +31,5 @@ dist-ssr
 *.db-journal
 .env.local
 .env.production.local
+
+prisma/generated/*
