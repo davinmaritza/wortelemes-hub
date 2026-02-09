@@ -5,15 +5,20 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
-import { getData, Video } from "@/lib/data";
+import { getVideos, Video } from "@/lib/api-client";
 
 export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
 
   useEffect(() => {
-    const data = getData();
-    setVideos(data.videos.filter((v) => v.type === "video"));
+    getVideos()
+      .then((data) => {
+        setVideos(data.filter((v) => v.type === "video"));
+      })
+      .catch((error) => {
+        console.error("Error loading videos:", error);
+      });
   }, []);
 
   const activeVideo = videos.find((v) => v.id === activeVideoId);

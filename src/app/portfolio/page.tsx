@@ -4,7 +4,12 @@ import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PortfolioSubNav from "@/components/PortfolioSubNav";
-import { getData, getYouTubeId, PortfolioItem } from "@/lib/data";
+import {
+  getPortfolioItems,
+  getSettings,
+  getYouTubeId,
+  PortfolioItem,
+} from "@/lib/api-client";
 import { Play } from "lucide-react";
 
 const PortfolioVideoCard = ({ item }: { item: PortfolioItem }) => {
@@ -58,9 +63,14 @@ export default function PortfolioPage() {
   const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
 
   useEffect(() => {
-    const data = getData();
-    setPortfolio(data.portfolio);
-    setPortfolioItems(data.portfolioItems);
+    Promise.all([getSettings(), getPortfolioItems()])
+      .then(([settings, items]) => {
+        setPortfolio(settings.portfolio);
+        setPortfolioItems(items);
+      })
+      .catch((error) => {
+        console.error("Error loading portfolio:", error);
+      });
   }, []);
 
   return (

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import LoadingScreen from "@/components/LoadingScreen";
-import { getData, Video } from "@/lib/data";
+import { getVideos, getSettings, Video } from "@/lib/api-client";
 import Header from "@/components/Header";
 import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
@@ -22,10 +22,15 @@ export default function HomePage() {
     setHasEntered(entered);
     setIsHydrated(true);
 
-    // Load data
-    const data = getData();
-    setVideos(data.videos.filter((v) => v.type === "video"));
-    setAboutMe(data.aboutMe);
+    // Load data from API
+    Promise.all([getVideos(), getSettings()])
+      .then(([videosData, settings]) => {
+        setVideos(videosData.filter((v) => v.type === "video"));
+        setAboutMe(settings.aboutMe);
+      })
+      .catch((error) => {
+        console.error("Error loading data:", error);
+      });
   }, []);
 
   const handleEnter = () => {

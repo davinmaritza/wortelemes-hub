@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo } from "react";
-import { getCategories } from "@/lib/data";
+import { useMemo, useState, useEffect } from "react";
+import { getCategories } from "@/lib/api-client";
 
 interface SubNavItem {
   label: string;
@@ -13,10 +13,16 @@ interface SubNavItem {
 
 const PortfolioSubNav = () => {
   const pathname = usePathname();
+  const [categories, setCategories] = useState<string[]>([]);
 
-  // Re-fetch categories on every render to ensure they're always up-to-date
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch((error) => console.error("Error loading categories:", error));
+  }, []);
+
+  // Build navigation from categories
   const portfolioCategories = useMemo(() => {
-    const categories = getCategories();
     const navItems: SubNavItem[] = [{ label: "All", path: "/portfolio" }];
 
     // Group categories by parent
@@ -60,7 +66,7 @@ const PortfolioSubNav = () => {
     });
 
     return navItems;
-  }, [pathname]); // Re-compute when pathname changes to pick up new categories
+  }, [categories]); // Re-compute when categories change
 
   const isExactActive = (path: string) => pathname === path;
 
