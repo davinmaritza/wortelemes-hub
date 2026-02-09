@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { X } from "lucide-react";
-import { getYouTubeId, Video } from "@/lib/data";
+import { getYouTubeId, Video } from "@/lib/api-client";
 
 interface VideoPlayerProps {
   video: Video;

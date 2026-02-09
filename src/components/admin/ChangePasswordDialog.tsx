@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { getAuthCredentials, updatePassword } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 
 const ChangePasswordDialog = () => {
@@ -22,19 +21,9 @@ const ChangePasswordDialog = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const { toast } = useToast();
 
-  const handleChangePassword = () => {
-    const auth = getAuthCredentials();
-
+  const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast({ title: "Please fill all fields", variant: "destructive" });
-      return;
-    }
-
-    if (currentPassword !== auth.password) {
-      toast({
-        title: "Current password is incorrect",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -54,12 +43,31 @@ const ChangePasswordDialog = () => {
       return;
     }
 
-    updatePassword(newPassword);
-    toast({ title: "Password changed successfully" });
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setOpen(false);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast({
+          title: data.error || "Failed to change password",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({ title: "Password changed successfully" });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setOpen(false);
+    } catch (error) {
+      toast({ title: "Failed to change password", variant: "destructive" });
+    }
   };
 
   return (

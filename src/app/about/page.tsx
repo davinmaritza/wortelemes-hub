@@ -3,14 +3,19 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getData } from "@/lib/data";
+import { getSettings } from "@/lib/api-client";
 
 export default function AboutPage() {
   const [aboutMe, setAboutMe] = useState("");
 
   useEffect(() => {
-    const data = getData();
-    setAboutMe(data.aboutMe);
+    getSettings()
+      .then((settings) => {
+        setAboutMe(settings.aboutMe);
+      })
+      .catch((error) => {
+        console.error("Error loading settings:", error);
+      });
   }, []);
 
   return (

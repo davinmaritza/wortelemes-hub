@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getData, ContactInfo } from "@/lib/data";
+import { getSettings, ContactInfo } from "@/lib/api-client";
 
 export default function ContactPage() {
   const [contact, setContact] = useState<ContactInfo>({
@@ -12,8 +12,13 @@ export default function ContactPage() {
   });
 
   useEffect(() => {
-    const data = getData();
-    setContact(data.contact);
+    getSettings()
+      .then((settings) => {
+        setContact(settings.contact);
+      })
+      .catch((error) => {
+        console.error("Error loading contact:", error);
+      });
   }, []);
 
   return (

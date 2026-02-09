@@ -1,7 +1,7 @@
 "use client";
 
 import VideoCard from "./VideoCard";
-import { Video } from "@/lib/data";
+import { Video } from "@/lib/api-client";
 
 interface VideoSectionProps {
   videos: Video[];

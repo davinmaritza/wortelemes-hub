@@ -21,10 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import {
   PortfolioItem,
-  PortfolioCategory,
   updatePortfolioItem,
   getCategories,
-} from "@/lib/data";
+} from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 
 interface EditPortfolioDialogProps {
@@ -42,7 +41,7 @@ const categoryLabels: Record<string, string> = {
 
 const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [categories, setCategories] = useState<PortfolioCategory[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [editData, setEditData] = useState({
     type: item.type,
     url: item.url,
@@ -54,7 +53,7 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
 
   useEffect(() => {
     if (open) {
-      setCategories(getCategories());
+      getCategories().then(setCategories).catch(console.error);
       setEditData({
         type: item.type,
         url: item.url,
@@ -65,21 +64,25 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
     }
   }, [open, item]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editData.url) {
       toast({ title: "URL is required", variant: "destructive" });
       return;
     }
-    updatePortfolioItem(item.id, {
-      type: editData.type,
-      url: editData.url,
-      title: editData.title || undefined,
-      description: editData.description || undefined,
-      category: editData.category as PortfolioCategory,
-    });
-    toast({ title: "Portfolio item updated" });
-    setOpen(false);
-    onUpdate();
+    try {
+      await updatePortfolioItem(item.id, {
+        type: editData.type,
+        url: editData.url,
+        title: editData.title || null,
+        description: editData.description || null,
+        category: editData.category,
+      });
+      toast({ title: "Portfolio item updated" });
+      setOpen(false);
+      onUpdate();
+    } catch (error) {
+      toast({ title: "Failed to update item", variant: "destructive" });
+    }
   };
 
   return (

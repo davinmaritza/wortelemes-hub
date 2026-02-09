@@ -1,7 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
-import { getYouTubeId, Video } from "@/lib/data";
+import { getYouTubeId, Video } from "@/lib/api-client";
 
 export interface VideoCardProps {
   video: Video;

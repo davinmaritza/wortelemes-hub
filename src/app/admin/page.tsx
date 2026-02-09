@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useSession, signIn, signOut } from "next-auth/react";
+import Image from "next/image";
 import {
   Trash2,
   Plus,
   LogOut,
   Save,
-  Image,
-  Video,
+  Image as ImageIcon,
+  Video as VideoIcon,
   FolderPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,180 +28,290 @@ import EditPortfolioDialog from "@/components/admin/EditPortfolioDialog";
 import ChangePasswordDialog from "@/components/admin/ChangePasswordDialog";
 import { useToast } from "@/hooks/use-toast";
 import {
-  getData,
-  addVideo,
+  getVideos,
+  createVideo,
   deleteVideo,
-  updateAboutMe,
-  updatePortfolio,
-  updateContact,
-  addPortfolioItem,
+  getPortfolioItems,
+  createPortfolioItem,
   deletePortfolioItem,
-  isLoggedIn,
-  login,
-  logout,
   getCategories,
-  addCategory,
+  createCategory,
   deleteCategory,
-  Video as VideoType,
-  ContactInfo,
+  getSettings,
+  updateSettings,
+  Video,
   PortfolioItem,
-  PortfolioCategory,
-} from "@/lib/data";
+  ContactInfo,
+} from "@/lib/api-client";
 
 export default function AdminPage() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const { data: session, status } = useSession();
+  const { toast } = useToast();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [videos, setVideos] = useState<VideoType[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [aboutMe, setAboutMe] = useState("");
   const [portfolio, setPortfolio] = useState("");
-  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
-  const [categories, setCategories] = useState<PortfolioCategory[]>([]);
   const [contact, setContact] = useState<ContactInfo>({
     email: "",
     discord: "",
   });
-  const [newVideo, setNewVideo] = useState<{
-    youtubeUrl: string;
-    title: string;
-    subtitle: string;
-  }>({ youtubeUrl: "", title: "", subtitle: "" });
-  const [newPortfolioItem, setNewPortfolioItem] = useState<{
-    type: "image" | "video";
-    url: string;
-    title: string;
-    description: string;
-    category: PortfolioCategory;
-  }>({ type: "image", url: "", title: "", description: "", category: "all" });
+
+  const [newVideo, setNewVideo] = useState({
+    youtubeUrl: "",
+    title: "",
+    subtitle: "",
+  });
+
+  const [newPortfolioItem, setNewPortfolioItem] = useState({
+    type: "image" as "image" | "video",
+    url: "",
+    title: "",
+    description: "",
+    category: "all",
+  });
+
   const [newCategory, setNewCategory] = useState("");
-  const { toast } = useToast();
-  const router = useRouter();
+
+  const loadData = async () => {
+    try {
+      const [videosData, portfolioData, categoriesData, settingsData] =
+        await Promise.all([
+          getVideos(),
+          getPortfolioItems(),
+          getCategories(),
+          getSettings(),
+        ]);
+
+      setVideos(videosData);
+      setPortfolioItems(portfolioData);
+      setCategories(categoriesData);
+      setAboutMe(settingsData.aboutMe);
+      setPortfolio(settingsData.portfolio);
+      setContact(settingsData.contact);
+    } catch (error) {
+      console.error("Error loading data:", error);
+      toast({ title: "Failed to load data", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
-    if (isLoggedIn()) {
-      setAuthenticated(true);
+    if (session) {
       loadData();
     }
-  }, []);
+  }, [session]);
 
-  const loadData = () => {
-    const data = getData();
-    setVideos(data.videos);
-    setAboutMe(data.aboutMe);
-    setPortfolio(data.portfolio);
-    setPortfolioItems(data.portfolioItems);
-    setContact(data.contact);
-    setCategories(getCategories());
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(username, password)) {
-      setAuthenticated(true);
-      loadData();
-      toast({ title: "Logged in successfully" });
+    const result = await signIn("credentials", {
+      username,
+      password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      toast({ title: "Login failed", variant: "destructive" });
     } else {
-      toast({ title: "Invalid credentials", variant: "destructive" });
+      toast({ title: "Logged in successfully" });
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    setAuthenticated(false);
-    setUsername("");
-    setPassword("");
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    toast({ title: "Logged out" });
   };
 
-  const handleAddVideo = () => {
+  const handleAddVideo = async () => {
     if (!newVideo.youtubeUrl) {
-      toast({ title: "Please fill in YouTube URL", variant: "destructive" });
+      toast({ title: "YouTube URL required", variant: "destructive" });
       return;
     }
-    addVideo({
-      youtubeUrl: newVideo.youtubeUrl,
-      title: newVideo.title || undefined,
-      subtitle: newVideo.subtitle || undefined,
-      type: "video",
-    });
-    setNewVideo({ youtubeUrl: "", title: "", subtitle: "" });
-    loadData();
-    toast({ title: "Video added successfully" });
+
+    try {
+      await createVideo({
+        youtubeUrl: newVideo.youtubeUrl,
+        title: newVideo.title || undefined,
+        subtitle: newVideo.subtitle || undefined,
+        type: "video",
+      });
+      setNewVideo({ youtubeUrl: "", title: "", subtitle: "" });
+      await loadData();
+      toast({ title: "Video added successfully" });
+    } catch (error) {
+      toast({ title: "Failed to add video", variant: "destructive" });
+    }
   };
 
-  const handleDeleteVideo = (id: string) => {
-    deleteVideo(id);
-    loadData();
-    toast({ title: "Video deleted" });
+  const handleDeleteVideo = async (id: string) => {
+    try {
+      await deleteVideo(id);
+      await loadData();
+      toast({ title: "Video deleted" });
+    } catch (error) {
+      toast({ title: "Failed to delete video", variant: "destructive" });
+    }
   };
 
-  const handleSaveAboutMe = () => {
-    updateAboutMe(aboutMe);
-    toast({ title: "About Me updated" });
-  };
-
-  const handleSavePortfolio = () => {
-    updatePortfolio(portfolio);
-    toast({ title: "Portfolio updated" });
-  };
-
-  const handleAddPortfolioItem = () => {
+  const handleAddPortfolioItem = async () => {
     if (!newPortfolioItem.url) {
-      toast({ title: "Please fill in URL", variant: "destructive" });
+      toast({ title: "URL required", variant: "destructive" });
       return;
     }
-    addPortfolioItem({
-      type: newPortfolioItem.type,
-      url: newPortfolioItem.url,
-      title: newPortfolioItem.title || undefined,
-      description: newPortfolioItem.description || undefined,
-      category: newPortfolioItem.category,
-    });
-    setNewPortfolioItem({
-      type: "image",
-      url: "",
-      title: "",
-      description: "",
-      category: "all",
-    });
-    loadData();
-    toast({ title: "Portfolio item added" });
+
+    try {
+      await createPortfolioItem({
+        type: newPortfolioItem.type,
+        url: newPortfolioItem.url,
+        title: newPortfolioItem.title || undefined,
+        description: newPortfolioItem.description || undefined,
+        category: newPortfolioItem.category,
+      });
+      setNewPortfolioItem({
+        type: "image",
+        url: "",
+        title: "",
+        description: "",
+        category: "all",
+      });
+      await loadData();
+      toast({ title: "Portfolio item added successfully" });
+    } catch (error) {
+      toast({ title: "Failed to add portfolio item", variant: "destructive" });
+    }
   };
 
-  const handleDeletePortfolioItem = (id: string) => {
-    deletePortfolioItem(id);
-    loadData();
-    toast({ title: "Portfolio item deleted" });
+  const handleDeletePortfolioItem = async (id: string) => {
+    try {
+      await deletePortfolioItem(id);
+      await loadData();
+      toast({ title: "Portfolio item deleted" });
+    } catch (error) {
+      toast({
+        title: "Failed to delete portfolio item",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleSaveContact = () => {
-    updateContact(contact);
-    toast({ title: "Contact info updated" });
+  const handleAddCategory = async () => {
+    if (!newCategory) {
+      toast({ title: "Category name required", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await createCategory(newCategory);
+      setNewCategory("");
+      await loadData();
+      toast({ title: "Category added successfully" });
+    } catch (error: any) {
+      toast({
+        title: error.message || "Failed to add category",
+        variant: "destructive",
+      });
+    }
   };
 
-  if (!authenticated) {
+  const handleDeleteCategory = async (name: string) => {
+    if (name === "all") {
+      toast({ title: "Cannot delete 'all' category", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await deleteCategory(name);
+      await loadData();
+      toast({ title: "Category deleted" });
+    } catch (error) {
+      toast({ title: "Failed to delete category", variant: "destructive" });
+    }
+  };
+
+  const handleSaveAboutMe = async () => {
+    try {
+      await updateSettings("aboutMe", aboutMe);
+      toast({ title: "About Me saved" });
+    } catch (error) {
+      toast({ title: "Failed to save About Me", variant: "destructive" });
+    }
+  };
+
+  const handleSavePortfolio = async () => {
+    try {
+      await updateSettings("portfolio", portfolio);
+      toast({ title: "Portfolio text saved" });
+    } catch (error) {
+      toast({ title: "Failed to save portfolio text", variant: "destructive" });
+    }
+  };
+
+  const handleSaveContact = async () => {
+    try {
+      await updateSettings("contact", contact);
+      toast({ title: "Contact info saved" });
+    } catch (error) {
+      toast({ title: "Failed to save contact info", variant: "destructive" });
+    }
+  };
+
+  if (status === "loading") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center font-display text-2xl">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-foreground mx-auto"></div>
+          <p className="text-muted-foreground font-body">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        {/* Logo */}
+        <div className="mb-8 animate-fade-in-up">
+          <Image
+            src="/logo.png"
+            alt="Wortelemes"
+            width={120}
+            height={120}
+            className="w-24 h-24 md:w-30 md:h-30 object-contain"
+            priority
+          />
+        </div>
+
+        <Card
+          className="w-full max-w-md shadow-lg opacity-0 animate-fade-in-up delay-100"
+          style={{ animationFillMode: "forwards" }}
+        >
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl font-display text-center">
               Admin Login
             </CardTitle>
+            <p className="text-sm text-muted-foreground text-center font-body">
+              Enter your credentials to access the dashboard
+            </p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="username" className="font-body">
                   Username
                 </Label>
                 <Input
                   id="username"
+                  type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
                   className="font-body"
+                  placeholder="Enter username"
+                  required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="password" className="font-body">
                   Password
                 </Label>
@@ -209,12 +320,13 @@ export default function AdminPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
                   className="font-body"
+                  placeholder="Enter password"
+                  required
                 />
               </div>
               <Button type="submit" className="w-full font-body">
-                Login
+                Sign In
               </Button>
             </form>
           </CardContent>
@@ -224,362 +336,260 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-display text-3xl text-foreground">Admin Panel</h1>
-          <div className="flex gap-2 flex-wrap justify-end">
-            <ChangePasswordDialog />
-            <Button
-              variant="outline"
-              onClick={() => router.push("/")}
-              className="font-body"
-            >
-              View Site
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleLogout}
-              className="font-body"
-            >
-              <LogOut className="w-4 h-4 mr-2" /> Logout
-            </Button>
-          </div>
-        </div>
-
-        {/* Add Video */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="font-display">Add New Video</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Image
+                src="/logo.png"
+                alt="Wortelemes"
+                width={40}
+                height={40}
+                className="w-10 h-10 object-contain"
+              />
               <div>
-                <Label htmlFor="youtubeUrl" className="font-body">
-                  YouTube URL *
-                </Label>
-                <Input
-                  id="youtubeUrl"
-                  value={newVideo.youtubeUrl}
-                  onChange={(e) =>
-                    setNewVideo((prev) => ({
-                      ...prev,
-                      youtubeUrl: e.target.value,
-                    }))
-                  }
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="font-body"
-                />
-              </div>
-              <div>
-                <Label htmlFor="title" className="font-body">
-                  Title (optional)
-                </Label>
-                <Input
-                  id="title"
-                  value={newVideo.title}
-                  onChange={(e) =>
-                    setNewVideo((prev) => ({ ...prev, title: e.target.value }))
-                  }
-                  placeholder="Video title"
-                  className="font-body"
-                />
-              </div>
-              <div>
-                <Label htmlFor="subtitle" className="font-body">
-                  Subtitle (optional)
-                </Label>
-                <Input
-                  id="subtitle"
-                  value={newVideo.subtitle}
-                  onChange={(e) =>
-                    setNewVideo((prev) => ({
-                      ...prev,
-                      subtitle: e.target.value,
-                    }))
-                  }
-                  placeholder="Video subtitle"
-                  className="font-body"
-                />
+                <h1 className="text-2xl font-display font-bold">
+                  Admin Dashboard
+                </h1>
+                <p className="text-sm text-muted-foreground font-body">
+                  Welcome back, {session.user?.username}
+                </p>
               </div>
             </div>
-            <Button onClick={handleAddVideo} className="font-body">
-              <Plus className="w-4 h-4 mr-2" /> Add Video
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="flex gap-2">
+              <ChangePasswordDialog />
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                className="font-body"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {/* Video List */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="font-display">
-              Manage Videos ({videos.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {videos.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4 font-body">
-                No videos added yet
-              </p>
-            ) : (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Videos Section */}
+        <section
+          className="opacity-0 animate-fade-in-up"
+          style={{ animationFillMode: "forwards" }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <VideoIcon className="w-5 h-5" />
+                Videos Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-body">YouTube URL</Label>
+                  <Input
+                    value={newVideo.youtubeUrl}
+                    onChange={(e) =>
+                      setNewVideo({ ...newVideo, youtubeUrl: e.target.value })
+                    }
+                    placeholder="https://youtube.com/..."
+                    className="font-body"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-body">Title (optional)</Label>
+                  <Input
+                    value={newVideo.title}
+                    onChange={(e) =>
+                      setNewVideo({ ...newVideo, title: e.target.value })
+                    }
+                    className="font-body"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-body">Subtitle (optional)</Label>
+                  <Input
+                    value={newVideo.subtitle}
+                    onChange={(e) =>
+                      setNewVideo({ ...newVideo, subtitle: e.target.value })
+                    }
+                    className="font-body"
+                  />
+                </div>
+              </div>
+              <Button onClick={handleAddVideo} className="font-body">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Video
+              </Button>
+
               <div className="space-y-3">
                 {videos.map((video) => (
                   <div
                     key={video.id}
-                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div>
-                      <p className="font-body font-medium text-foreground">
-                        {video.title || "Untitled"}
+                    <div className="flex-1">
+                      <p className="font-medium font-body">
+                        {video.title || video.youtubeUrl}
                       </p>
-                      <p className="text-sm text-muted-foreground font-body">
-                        {video.subtitle || "No subtitle"}
-                      </p>
+                      {video.subtitle && (
+                        <p className="text-sm text-muted-foreground font-body">
+                          {video.subtitle}
+                        </p>
+                      )}
                     </div>
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDeleteVideo(video.id)}
+                      className="font-body"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
+                {videos.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8 font-body">
+                    No videos yet. Add your first video above.
+                  </p>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
 
-        {/* Portfolio Text */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="font-display">
-              Portfolio Description
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              value={portfolio}
-              onChange={(e) => setPortfolio(e.target.value)}
-              placeholder="Write about your portfolio..."
-              rows={3}
-              className="font-body"
-            />
-            <Button onClick={handleSavePortfolio} className="font-body">
-              <Save className="w-4 h-4 mr-2" /> Save Description
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Manage Categories */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="font-display">Manage Categories</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="New category name (e.g., Artwork or GTACommish/Mods)"
-                className="font-body flex-1"
-              />
-              <Button
-                onClick={() => {
-                  if (newCategory.trim()) {
-                    addCategory(newCategory.trim());
-                    setNewCategory("");
-                    setCategories(getCategories());
-                    toast({ title: "Category added" });
-                  }
-                }}
-                className="font-body"
-              >
-                <FolderPlus className="w-4 h-4 mr-2" /> Add Category
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {categories
-                .filter((c) => c !== "all")
-                .map((cat) => (
-                  <div
-                    key={cat}
-                    className="flex items-center gap-1 bg-muted rounded-md px-3 py-1.5"
+        {/* Portfolio Items Section */}
+        <section
+          className="opacity-0 animate-fade-in-up delay-100"
+          style={{ animationFillMode: "forwards" }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <ImageIcon className="w-5 h-5" />
+                Portfolio Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-body">Type</Label>
+                  <Select
+                    value={newPortfolioItem.type}
+                    onValueChange={(value: "image" | "video") =>
+                      setNewPortfolioItem({ ...newPortfolioItem, type: value })
+                    }
                   >
-                    <span className="text-sm font-body">
-                      {cat.replace("/", " - ")}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-5 w-5 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => {
-                        deleteCategory(cat);
-                        setCategories(getCategories());
-                        toast({ title: "Category deleted" });
-                      }}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Add Portfolio Item */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="font-display">Add Portfolio Item</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4 mb-4">
-              <Button
-                variant={
-                  newPortfolioItem.type === "image" ? "default" : "outline"
-                }
-                onClick={() =>
-                  setNewPortfolioItem((prev) => ({ ...prev, type: "image" }))
-                }
-                className="font-body"
-              >
-                <Image className="w-4 h-4 mr-2" /> Image
-              </Button>
-              <Button
-                variant={
-                  newPortfolioItem.type === "video" ? "default" : "outline"
-                }
-                onClick={() =>
-                  setNewPortfolioItem((prev) => ({ ...prev, type: "video" }))
-                }
-                className="font-body"
-              >
-                <Video className="w-4 h-4 mr-2" /> Video
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="portfolioUrl" className="font-body">
-                  {newPortfolioItem.type === "image"
-                    ? "Image URL *"
-                    : "YouTube URL *"}
-                </Label>
-                <Input
-                  id="portfolioUrl"
-                  value={newPortfolioItem.url}
-                  onChange={(e) =>
-                    setNewPortfolioItem((prev) => ({
-                      ...prev,
-                      url: e.target.value,
-                    }))
-                  }
-                  placeholder={
-                    newPortfolioItem.type === "image"
-                      ? "https://example.com/image.jpg"
-                      : "https://www.youtube.com/watch?v=..."
-                  }
-                  className="font-body"
-                />
-              </div>
-              <div>
-                <Label htmlFor="portfolioTitle" className="font-body">
-                  Title (optional)
-                </Label>
-                <Input
-                  id="portfolioTitle"
-                  value={newPortfolioItem.title}
-                  onChange={(e) =>
-                    setNewPortfolioItem((prev) => ({
-                      ...prev,
-                      title: e.target.value,
-                    }))
-                  }
-                  placeholder="Item title"
-                  className="font-body"
-                />
-              </div>
-              <div>
-                <Label htmlFor="portfolioCategory" className="font-body">
-                  Category
-                </Label>
-                <Select
-                  value={newPortfolioItem.category}
-                  onValueChange={(value: PortfolioCategory) =>
-                    setNewPortfolioItem((prev) => ({
-                      ...prev,
-                      category: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger className="font-body">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat === "all" ? "All" : cat.replace("/", " - ")}
+                    <SelectTrigger className="font-body">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="image" className="font-body">
+                        Image
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      <SelectItem value="video" className="font-body">
+                        Video
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-body">URL</Label>
+                  <Input
+                    value={newPortfolioItem.url}
+                    onChange={(e) =>
+                      setNewPortfolioItem({
+                        ...newPortfolioItem,
+                        url: e.target.value,
+                      })
+                    }
+                    placeholder="https://..."
+                    className="font-body"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-body">Title (optional)</Label>
+                  <Input
+                    value={newPortfolioItem.title}
+                    onChange={(e) =>
+                      setNewPortfolioItem({
+                        ...newPortfolioItem,
+                        title: e.target.value,
+                      })
+                    }
+                    className="font-body"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-body">Description (optional)</Label>
+                  <Input
+                    value={newPortfolioItem.description}
+                    onChange={(e) =>
+                      setNewPortfolioItem({
+                        ...newPortfolioItem,
+                        description: e.target.value,
+                      })
+                    }
+                    className="font-body"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-body">Category</Label>
+                  <Select
+                    value={newPortfolioItem.category}
+                    onValueChange={(value) =>
+                      setNewPortfolioItem({
+                        ...newPortfolioItem,
+                        category: value,
+                      })
+                    }
+                  >
+                    <SelectTrigger className="font-body">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat} className="font-body">
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="portfolioDesc" className="font-body">
-                  Description (optional)
-                </Label>
-                <Input
-                  id="portfolioDesc"
-                  value={newPortfolioItem.description}
-                  onChange={(e) =>
-                    setNewPortfolioItem((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="Brief description"
-                  className="font-body"
-                />
-              </div>
-            </div>
-            <Button onClick={handleAddPortfolioItem} className="font-body">
-              <Plus className="w-4 h-4 mr-2" /> Add Item
-            </Button>
-          </CardContent>
-        </Card>
+              <Button onClick={handleAddPortfolioItem} className="font-body">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Portfolio Item
+              </Button>
 
-        {/* Portfolio Items List */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="font-display">
-              Portfolio Items ({portfolioItems.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {portfolioItems.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4 font-body">
-                No portfolio items added yet
-              </p>
-            ) : (
               <div className="space-y-3">
                 {portfolioItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-center gap-3">
-                      {item.type === "image" ? (
-                        <Image className="w-5 h-5 text-muted-foreground" />
-                      ) : (
-                        <Video className="w-5 h-5 text-muted-foreground" />
-                      )}
-                      <div>
-                        <p className="font-body font-medium text-foreground">
-                          {item.title || "Untitled"}
-                        </p>
-                        <p className="text-sm text-muted-foreground font-body truncate max-w-[300px]">
-                          {item.url}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        {item.type === "video" ? (
+                          <VideoIcon className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <p className="font-medium font-body">
+                          {item.title || item.url}
                         </p>
                       </div>
+                      {item.description && (
+                        <p className="text-sm text-muted-foreground font-body mt-1">
+                          {item.description}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground font-body mt-1">
+                        Category: {item.category || "none"}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <EditPortfolioDialog item={item} onUpdate={loadData} />
@@ -593,75 +603,170 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+                {portfolioItems.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8 font-body">
+                    No portfolio items yet. Add your first item above.
+                  </p>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </section>
 
-        {/* About Me */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="font-display">About Me</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              value={aboutMe}
-              onChange={(e) => setAboutMe(e.target.value)}
-              placeholder="Write about yourself..."
-              rows={5}
-              className="font-body"
-            />
-            <Button onClick={handleSaveAboutMe} className="font-body">
-              <Save className="w-4 h-4 mr-2" /> Save About Me
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Contact Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display">Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email" className="font-body">
-                  Email
-                </Label>
+        {/* Categories Section */}
+        <section
+          className="opacity-0 animate-fade-in-up delay-200"
+          style={{ animationFillMode: "forwards" }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-display flex items-center gap-2">
+                <FolderPlus className="w-5 h-5" />
+                Categories Management
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex gap-2">
                 <Input
-                  id="email"
-                  type="email"
-                  value={contact.email}
-                  onChange={(e) =>
-                    setContact((prev) => ({ ...prev, email: e.target.value }))
-                  }
-                  placeholder="your@email.com"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="New category name"
                   className="font-body"
                 />
+                <Button onClick={handleAddCategory} className="font-body">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Category
+                </Button>
               </div>
-              <div>
-                <Label htmlFor="discord" className="font-body">
-                  Discord Username
-                </Label>
-                <Input
-                  id="discord"
-                  value={contact.discord}
-                  onChange={(e) =>
-                    setContact((prev) => ({
-                      ...prev,
-                      discord: e.target.value,
-                    }))
-                  }
-                  placeholder="username"
-                  className="font-body"
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <div
+                    key={category}
+                    className="flex items-center gap-2 px-4 py-2 border rounded-full bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <span className="font-body">{category}</span>
+                    {category !== "all" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCategory(category)}
+                        className="h-auto p-1 hover:bg-destructive/10"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Content Management */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* About Me Section */}
+          <section
+            className="opacity-0 animate-fade-in-up delay-300"
+            style={{ animationFillMode: "forwards" }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-display">About Me</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  value={aboutMe}
+                  onChange={(e) => setAboutMe(e.target.value)}
+                  rows={6}
+                  className="font-body resize-none"
+                  placeholder="Write about yourself..."
                 />
+                <Button
+                  onClick={handleSaveAboutMe}
+                  className="w-full font-body"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save About Me
+                </Button>
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Portfolio Description Section */}
+          <section
+            className="opacity-0 animate-fade-in-up delay-300"
+            style={{ animationFillMode: "forwards" }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-display">
+                  Portfolio Description
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  value={portfolio}
+                  onChange={(e) => setPortfolio(e.target.value)}
+                  rows={6}
+                  className="font-body resize-none"
+                  placeholder="Describe your portfolio..."
+                />
+                <Button
+                  onClick={handleSavePortfolio}
+                  className="w-full font-body"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Portfolio Text
+                </Button>
+              </CardContent>
+            </Card>
+          </section>
+        </div>
+
+        {/* Contact Info Section */}
+        <section
+          className="opacity-0 animate-fade-in-up delay-400"
+          style={{ animationFillMode: "forwards" }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-display">
+                Contact Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-body">Email</Label>
+                  <Input
+                    type="email"
+                    value={contact.email}
+                    onChange={(e) =>
+                      setContact({ ...contact, email: e.target.value })
+                    }
+                    className="font-body"
+                    placeholder="your@email.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-body">Discord</Label>
+                  <Input
+                    value={contact.discord}
+                    onChange={(e) =>
+                      setContact({ ...contact, discord: e.target.value })
+                    }
+                    className="font-body"
+                    placeholder="username"
+                  />
+                </div>
               </div>
-            </div>
-            <Button onClick={handleSaveContact} className="font-body">
-              <Save className="w-4 h-4 mr-2" /> Save Contact Info
-            </Button>
-          </CardContent>
-        </Card>
+              <Button onClick={handleSaveContact} className="font-body">
+                <Save className="w-4 h-4 mr-2" />
+                Save Contact Info
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </div>
   );
