@@ -1,6 +1,7 @@
-import { Link } from "react-router-dom";
-import { Shield } from "lucide-react";
+"use client";
 
+import Link from "next/link";
+import { Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Footer = () => {
@@ -20,7 +21,7 @@ const Footer = () => {
             aria-label="Masuk Admin"
             title="Masuk Admin"
           >
-            <Link to="/admin">
+            <Link href="/admin">
               <Shield className="h-4 w-4" />
             </Link>
           </Button>

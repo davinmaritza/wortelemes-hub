@@ -1,5 +1,7 @@
-import { Play } from 'lucide-react';
-import { getYouTubeId, Video } from '@/lib/data';
+"use client";
+
+import { Play } from "lucide-react";
+import { getYouTubeId, Video } from "@/lib/data";
 
 export interface VideoCardProps {
   video: Video;
@@ -8,33 +10,49 @@ export interface VideoCardProps {
   onVideoClick?: (videoId: string) => void;
 }
 
-const VideoCard = ({ video, index = 0, isActive = false, onVideoClick }: VideoCardProps) => {
+const VideoCard = ({
+  video,
+  index = 0,
+  isActive = false,
+  onVideoClick,
+}: VideoCardProps) => {
   const { youtubeUrl, title, subtitle } = video;
   const videoId = getYouTubeId(youtubeUrl);
-  const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
+  const thumbnailUrl = videoId
+    ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+    : "";
 
   const handleClick = () => {
     onVideoClick?.(video.id);
   };
 
   return (
-    <div 
+    <div
       className="group relative opacity-0 animate-fade-in-up"
-      style={{ animationFillMode: 'forwards', animationDelay: `${index * 100}ms` }}
+      style={{
+        animationFillMode: "forwards",
+        animationDelay: `${index * 100}ms`,
+      }}
     >
-      <div 
+      <div
         className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg"
         onClick={handleClick}
       >
-        <img 
-          src={thumbnailUrl} 
-          alt={title || 'Video thumbnail'}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={thumbnailUrl}
+          alt={title || "Video thumbnail"}
           className="w-full h-full object-cover"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            (e.target as HTMLImageElement).src =
+              `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
           }}
         />
-        <div className={`absolute inset-0 bg-foreground/30 flex items-center justify-center transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+        <div
+          className={`absolute inset-0 bg-foreground/30 flex items-center justify-center transition-opacity ${
+            isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
+        >
           <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center">
             <Play className="w-6 h-6 text-foreground ml-1" />
           </div>
@@ -42,8 +60,16 @@ const VideoCard = ({ video, index = 0, isActive = false, onVideoClick }: VideoCa
       </div>
       {(title || subtitle) && (
         <div className="mt-3 text-center">
-          {title && <h3 className="text-foreground font-body font-medium text-sm">{title}</h3>}
-          {subtitle && <p className="text-muted-foreground font-body text-xs">{subtitle}</p>}
+          {title && (
+            <h3 className="text-foreground font-body font-medium text-sm">
+              {title}
+            </h3>
+          )}
+          {subtitle && (
+            <p className="text-muted-foreground font-body text-xs">
+              {subtitle}
+            </p>
+          )}
         </div>
       )}
     </div>
