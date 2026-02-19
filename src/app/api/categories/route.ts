@@ -34,6 +34,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (name.toLowerCase() === "all") {
+      return NextResponse.json(
+        { error: "'all' is a reserved category name" },
+        { status: 400 },
+      );
+    }
+
     const category = await prisma.category.create({
       data: { name },
     });

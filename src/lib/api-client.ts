@@ -20,15 +20,45 @@ export interface PortfolioItem {
   updatedAt: Date;
 }
 
-export interface ContactInfo {
-  email: string;
-  discord: string;
+export interface ContactLink {
+  id: string;
+  icon: string;
+  label: string;
+  value: string;
+  href?: string;
+}
+
+/** @deprecated Use ContactLink[] */
+export type ContactInfo = ContactLink[];
+
+/** Normalize old { email, discord } format → ContactLink[] */
+export function normalizeContact(raw: any): ContactLink[] {
+  if (Array.isArray(raw)) return raw as ContactLink[];
+  const links: ContactLink[] = [];
+  if (raw?.email) {
+    links.push({
+      id: "email",
+      icon: "Mail",
+      label: "Email",
+      value: raw.email,
+      href: `mailto:${raw.email}`,
+    });
+  }
+  if (raw?.discord) {
+    links.push({
+      id: "discord",
+      icon: "MessageCircle",
+      label: "Discord",
+      value: raw.discord,
+    });
+  }
+  return links;
 }
 
 export interface SettingsData {
   aboutMe: string;
   portfolio: string;
-  contact: ContactInfo;
+  contact: ContactLink[];
 }
 
 // Videos
@@ -56,6 +86,23 @@ export async function createVideo(data: {
 export async function deleteVideo(id: string): Promise<void> {
   const res = await fetch(`/api/videos/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete video");
+}
+
+export async function updateVideo(
+  id: string,
+  data: {
+    youtubeUrl?: string;
+    title?: string | null;
+    subtitle?: string | null;
+  },
+): Promise<Video> {
+  const res = await fetch(`/api/videos/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to update video");
+  return res.json();
 }
 
 // Portfolio Items
@@ -129,7 +176,8 @@ export async function deleteCategory(name: string): Promise<void> {
 export async function getSettings(): Promise<SettingsData> {
   const res = await fetch("/api/settings", { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch settings");
-  return res.json();
+  const data = await res.json();
+  return { ...data, contact: normalizeContact(data.contact) };
 }
 
 export async function updateSettings(key: string, value: any): Promise<void> {
@@ -147,4 +195,14 @@ export function getYouTubeId(url: string): string | null {
     /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
   const match = url.match(regex);
   return match ? match[1] : null;
+}
+
+// Upload an image to Cloudinary via the server route
+export async function uploadPortfolioImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  if (!res.ok) throw new Error("Failed to upload image");
+  const data = await res.json();
+  return data.url as string;
 }

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import LoadingScreen from "@/components/LoadingScreen";
 import { getVideos, getSettings, Video } from "@/lib/api-client";
 import Header from "@/components/Header";
@@ -15,6 +17,7 @@ export default function HomePage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [aboutMe, setAboutMe] = useState("");
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Hydrate state from sessionStorage and mark as hydrated
@@ -30,7 +33,8 @@ export default function HomePage() {
       })
       .catch((error) => {
         console.error("Error loading data:", error);
-      });
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const handleEnter = () => {
@@ -76,9 +80,19 @@ export default function HomePage() {
         style={{ animationFillMode: "forwards" }}
       >
         <div className="container mx-auto px-4 text-center max-w-2xl">
-          <p className="text-muted-foreground font-body leading-relaxed">
-            {aboutMe}
-          </p>
+          {isLoading ? (
+            <div className="space-y-3">
+              <div className="h-4 bg-muted rounded animate-pulse w-3/4 mx-auto" />
+              <div className="h-4 bg-muted rounded animate-pulse w-full mx-auto" />
+              <div className="h-4 bg-muted rounded animate-pulse w-2/3 mx-auto" />
+            </div>
+          ) : aboutMe ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none font-body text-muted-foreground [&_*]:mx-auto">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {aboutMe}
+              </ReactMarkdown>
+            </div>
+          ) : null}
         </div>
       </section>
 
