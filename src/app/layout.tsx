@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { GoogleAnalyticsProvider } from "@/components/providers/google-analytics";
 
 const BASE_URL = "https://wortelemes.com";
 
@@ -133,6 +134,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <GoogleAnalyticsProvider />
       </head>
       <body>
         <AuthProvider>
