@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "postinstall": "npx prisma generate",
+    "postinstall": "npx prisma generate --no-engine",
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",

@@ -63,10 +63,21 @@ async function main() {
     update: {},
     create: {
       key: "contact",
-      value: JSON.stringify({
-        email: "Feelsbrian@gmail.com",
-        discord: "wortelemes",
-      }),
+      value: JSON.stringify([
+        {
+          id: "1",
+          icon: "Mail",
+          label: "Email",
+          value: "Feelsbrian@gmail.com",
+          href: "mailto:Feelsbrian@gmail.com",
+        },
+        {
+          id: "2",
+          icon: "MessageCircle",
+          label: "Discord",
+          value: "wortelemes",
+        },
+      ]),
     },
   });
   console.log("✅ Created default settings");
