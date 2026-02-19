@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Play } from "lucide-react";
 import { getYouTubeId, Video } from "@/lib/api-client";
 
@@ -18,9 +19,13 @@ const VideoCard = ({
 }: VideoCardProps) => {
   const { youtubeUrl, title, subtitle } = video;
   const videoId = getYouTubeId(youtubeUrl);
-  const thumbnailUrl = videoId
-    ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
-    : "";
+
+  // hqdefault.jpg is guaranteed to exist for all valid YouTube videos.
+  // maxresdefault.jpg returns a gray 120x90 placeholder (not a 404) when
+  // the video isn't HD, so the onError handler never fires.
+  const [thumbnailSrc, setThumbnailSrc] = useState(
+    videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : "",
+  );
 
   const handleClick = () => {
     onVideoClick?.(video.id);
@@ -35,38 +40,59 @@ const VideoCard = ({
       }}
     >
       <div
-        className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg"
+        className="relative aspect-video bg-muted rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-[1.02]"
         onClick={handleClick}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={thumbnailUrl}
-          alt={title || "Video thumbnail"}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src =
-              `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-          }}
-        />
+        {thumbnailSrc ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={thumbnailSrc}
+            alt={title || "Video thumbnail"}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            onError={() => {
+              // Ultimate fallback: frame 0, always available
+              if (videoId) {
+                setThumbnailSrc(`https://img.youtube.com/vi/${videoId}/0.jpg`);
+              }
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <Play className="w-10 h-10 text-muted-foreground" />
+          </div>
+        )}
+
+        {/* Dark gradient overlay (always visible at bottom for text legibility) */}
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+
+        {/* Hover / active play overlay */}
         <div
-          className={`absolute inset-0 bg-foreground/30 flex items-center justify-center transition-opacity ${
+          className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-200 ${
             isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100"
           }`}
         >
-          <div className="w-14 h-14 rounded-full bg-background flex items-center justify-center">
-            <Play className="w-6 h-6 text-foreground ml-1" />
+          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform transition-transform duration-200 group-hover:scale-110">
+            <Play className="w-7 h-7 text-black ml-1" fill="black" />
           </div>
         </div>
+
+        {/* Active indicator */}
+        {isActive && (
+          <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-white/90 text-black text-xs font-body font-medium">
+            Playing
+          </div>
+        )}
       </div>
+
       {(title || subtitle) && (
-        <div className="mt-3 text-center">
+        <div className="mt-3 space-y-0.5">
           {title && (
-            <h3 className="text-foreground font-body font-medium text-sm">
+            <h3 className="text-foreground font-body font-medium text-sm leading-snug line-clamp-2">
               {title}
             </h3>
           )}
           {subtitle && (
-            <p className="text-muted-foreground font-body text-xs">
+            <p className="text-muted-foreground font-body text-xs line-clamp-1">
               {subtitle}
             </p>
           )}

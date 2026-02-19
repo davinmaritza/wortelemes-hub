@@ -6,10 +6,12 @@ import Footer from "@/components/Footer";
 import VideoCard from "@/components/VideoCard";
 import VideoPlayer from "@/components/VideoPlayer";
 import { getVideos, Video } from "@/lib/api-client";
+import { Play } from "lucide-react";
 
 export default function VideosPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     getVideos()
@@ -18,10 +20,12 @@ export default function VideosPage() {
       })
       .catch((error) => {
         console.error("Error loading videos:", error);
-      });
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const activeVideo = videos.find((v) => v.id === activeVideoId);
+  const [featuredVideo, ...restVideos] = videos;
 
   const handleVideoClick = (videoId: string) => {
     setActiveVideoId(videoId);
@@ -36,35 +40,97 @@ export default function VideosPage() {
       <Header />
 
       <main className="flex-1 container mx-auto px-4 py-16">
-        <h1
-          className="font-display text-4xl md:text-5xl text-center text-foreground mb-12 opacity-0 animate-fade-in-up"
+        {/* Page header */}
+        <div
+          className="text-center mb-12 opacity-0 animate-fade-in-up"
           style={{ animationFillMode: "forwards" }}
         >
-          Videos
-        </h1>
+          <h1 className="font-display text-4xl md:text-5xl text-foreground mb-3">
+            Videos
+          </h1>
+          {!isLoading && videos.length > 0 && (
+            <p className="text-muted-foreground font-body text-sm">
+              {videos.length} {videos.length === 1 ? "video" : "videos"}
+            </p>
+          )}
+        </div>
 
-        {videos.length > 0 ? (
+        {isLoading ? (
+          /* Skeleton */
           <div
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-0 animate-fade-in-up delay-200"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-0 animate-fade-in"
             style={{ animationFillMode: "forwards" }}
           >
-            {videos.map((video, index) => (
-              <VideoCard
-                key={video.id}
-                video={video}
-                index={index}
-                isActive={activeVideoId === video.id}
-                onVideoClick={handleVideoClick}
-              />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <div className="aspect-video bg-muted rounded-lg animate-pulse" />
+                <div className="h-3 bg-muted rounded animate-pulse w-3/4" />
+                <div className="h-3 bg-muted rounded animate-pulse w-1/2" />
+              </div>
             ))}
           </div>
+        ) : videos.length > 0 ? (
+          <div className="space-y-10">
+            {/* Featured first video — wider card */}
+            {featuredVideo && (
+              <div
+                className="opacity-0 animate-fade-in-up"
+                style={{
+                  animationFillMode: "forwards",
+                  animationDelay: "100ms",
+                }}
+              >
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-body mb-4">
+                  Latest
+                </p>
+                <VideoCard
+                  video={featuredVideo}
+                  index={0}
+                  isActive={activeVideoId === featuredVideo.id}
+                  onVideoClick={handleVideoClick}
+                />
+              </div>
+            )}
+
+            {/* Rest of the videos in a responsive grid */}
+            {restVideos.length > 0 && (
+              <div
+                className="opacity-0 animate-fade-in-up"
+                style={{
+                  animationFillMode: "forwards",
+                  animationDelay: "200ms",
+                }}
+              >
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-body mb-4">
+                  More Videos
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {restVideos.map((video, index) => (
+                    <VideoCard
+                      key={video.id}
+                      video={video}
+                      index={index + 1}
+                      isActive={activeVideoId === video.id}
+                      onVideoClick={handleVideoClick}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
-          <p
-            className="text-center text-muted-foreground font-body opacity-0 animate-fade-in"
+          /* Empty state */
+          <div
+            className="flex flex-col items-center justify-center py-24 gap-4 opacity-0 animate-fade-in"
             style={{ animationFillMode: "forwards" }}
           >
-            No videos yet. Check back soon!
-          </p>
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <Play className="w-7 h-7 text-muted-foreground ml-1" />
+            </div>
+            <p className="text-muted-foreground font-body text-center">
+              No videos yet. Check back soon!
+            </p>
+          </div>
         )}
       </main>
 
