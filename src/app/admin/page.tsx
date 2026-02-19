@@ -150,6 +150,8 @@ export default function AdminPage() {
   });
   const [imageMode, setImageMode] = useState<"url" | "upload">("url");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadComplete, setUploadComplete] = useState(false);
 
   // Add-category form
   const [newCategory, setNewCategory] = useState("");
@@ -244,6 +246,15 @@ export default function AdminPage() {
   };
 
   // ---------- Portfolio ----------
+  const handleImageSelect = (file: File) => {
+    // Create local preview immediately
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setUploadComplete(false);
+    // Start upload
+    handleImageUpload(file);
+  };
+
   const handleImageUpload = async (file: File) => {
     setIsUploadingImage(true);
     try {
@@ -256,12 +267,22 @@ export default function AdminPage() {
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
       setNewPortfolioItem((prev) => ({ ...prev, url: data.url }));
-      toast({ title: "Image uploaded" });
+      setUploadComplete(true);
+      toast({ title: "Image uploaded successfully" });
     } catch {
+      setImagePreview(null);
       toast({ title: "Failed to upload image", variant: "destructive" });
     } finally {
       setIsUploadingImage(false);
     }
+  };
+
+  const clearImagePreview = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+    setUploadComplete(false);
   };
 
   const handleAddPortfolioItem = async () => {
@@ -293,6 +314,7 @@ export default function AdminPage() {
         category: "",
       });
       setImageMode("url");
+      clearImagePreview();
       await loadData();
       toast({ title: "Portfolio item added" });
     } catch {
@@ -790,28 +812,52 @@ export default function AdminPage() {
                         className="font-body"
                       />
                     ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         <Input
                           type="file"
                           accept="image/*"
                           className="font-body cursor-pointer"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
-                            if (file) handleImageUpload(file);
+                            if (file) handleImageSelect(file);
                           }}
                           disabled={isUploadingImage}
                         />
-                        {isUploadingImage && (
-                          <p className="text-xs text-muted-foreground font-body flex items-center gap-1.5">
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            Uploading to Cloudinary...
-                          </p>
+                        {/* Image preview with grayscale → color animation */}
+                        {imagePreview && (
+                          <div className="relative w-full max-w-xs">
+                            <div
+                              className={`relative overflow-hidden rounded-lg border transition-all duration-700 ${
+                                isUploadingImage
+                                  ? "grayscale"
+                                  : uploadComplete
+                                  ? "grayscale-0"
+                                  : "grayscale"
+                              }`}
+                            >
+                              <img
+                                src={imagePreview}
+                                alt="Preview"
+                                className="w-full h-auto max-h-48 object-cover"
+                              />
+                              {isUploadingImage && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                                    <span className="text-xs text-white font-body">Uploading...</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            {uploadComplete && (
+                              <p className="text-xs text-green-600 dark:text-green-400 font-body mt-2 flex items-center gap-1">
+                                ✓ Image uploaded successfully
+                              </p>
+                            )}
+                          </div>
                         )}
-                        {newPortfolioItem.url && (
-                          <p className="text-xs text-green-600 dark:text-green-400 font-body truncate">
-                            ✓ {newPortfolioItem.url}
-                          </p>
-                        )}
+                        {/* Hidden input to store the actual URL */}
+                        <input type="hidden" value={newPortfolioItem.url} />
                       </div>
                     )}
                   </div>

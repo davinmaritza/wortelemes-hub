@@ -36,6 +36,8 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [imageMode, setImageMode] = useState<"url" | "upload">("url");
   const [isUploading, setIsUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadComplete, setUploadComplete] = useState(false);
   const [editData, setEditData] = useState({
     type: item.type,
     url: item.url,
@@ -56,8 +58,17 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
         category: item.category || "",
       });
       setImageMode("url");
+      setImagePreview(null);
+      setUploadComplete(false);
     }
   }, [open, item]);
+
+  const handleImageSelect = (file: File) => {
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setUploadComplete(false);
+    handleImageUpload(file);
+  };
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
@@ -71,12 +82,22 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
       setEditData((prev) => ({ ...prev, url: data.url }));
-      toast({ title: "Image uploaded" });
+      setUploadComplete(true);
+      toast({ title: "Image uploaded successfully" });
     } catch {
+      setImagePreview(null);
       toast({ title: "Failed to upload image", variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const clearImagePreview = () => {
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+    setUploadComplete(false);
   };
 
   const handleSave = async () => {
@@ -187,28 +208,58 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
                   className="font-body"
                 />
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <Input
                     type="file"
                     accept="image/*"
                     className="font-body cursor-pointer"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file);
+                      if (file) handleImageSelect(file);
                     }}
                     disabled={isUploading}
                   />
-                  {isUploading && (
-                    <p className="text-xs text-muted-foreground font-body flex items-center gap-1.5">
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Uploading to Cloudinary...
+                  {/* Image preview with grayscale → color animation */}
+                  {imagePreview && (
+                    <div className="relative w-full max-w-xs">
+                      <div
+                        className={`relative overflow-hidden rounded-lg border transition-all duration-700 ${
+                          isUploading
+                            ? "grayscale"
+                            : uploadComplete
+                            ? "grayscale-0"
+                            : "grayscale"
+                        }`}
+                      >
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-auto max-h-48 object-cover"
+                        />
+                        {isUploading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 className="w-6 h-6 text-white animate-spin" />
+                              <span className="text-xs text-white font-body">Uploading...</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {uploadComplete && (
+                        <p className="text-xs text-green-600 dark:text-green-400 font-body mt-2 flex items-center gap-1">
+                          ✓ Image uploaded successfully
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {/* Show existing image URL if no preview but has URL */}
+                  {!imagePreview && editData.url && (
+                    <p className="text-xs text-green-600 dark:text-green-400 font-body flex items-center gap-1">
+                      ✓ Image already uploaded
                     </p>
                   )}
-                  {editData.url && (
-                    <p className="text-xs text-green-600 dark:text-green-400 font-body truncate">
-                      ✓ {editData.url}
-                    </p>
-                  )}
+                  {/* Hidden input to store the actual URL */}
+                  <input type="hidden" value={editData.url} />
                 </div>
               )}
             </div>
