@@ -27,6 +27,9 @@ import {
   Send,
   Music,
   Link as LinkIcon,
+  Upload,
+  Link2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +53,7 @@ import {
 import EditPortfolioDialog from "@/components/admin/EditPortfolioDialog";
 import EditVideoDialog from "@/components/admin/EditVideoDialog";
 import ChangePasswordDialog from "@/components/admin/ChangePasswordDialog";
+import { MarkdownEditor } from "@/components/admin/MarkdownEditor";
 import { useToast } from "@/hooks/use-toast";
 import {
   getVideos,
@@ -142,8 +146,10 @@ export default function AdminPage() {
     url: "",
     title: "",
     description: "",
-    category: "all",
+    category: "",
   });
+  const [imageMode, setImageMode] = useState<"url" | "upload">("url");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Add-category form
   const [newCategory, setNewCategory] = useState("");
@@ -238,26 +244,55 @@ export default function AdminPage() {
   };
 
   // ---------- Portfolio ----------
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setNewPortfolioItem((prev) => ({ ...prev, url: data.url }));
+      toast({ title: "Image uploaded" });
+    } catch {
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
   const handleAddPortfolioItem = async () => {
     if (!newPortfolioItem.url) {
       toast({ title: "URL required", variant: "destructive" });
+      return;
+    }
+    if (!newPortfolioItem.title) {
+      toast({ title: "Title is required", variant: "destructive" });
+      return;
+    }
+    if (!newPortfolioItem.description) {
+      toast({ title: "Description is required", variant: "destructive" });
       return;
     }
     try {
       await createPortfolioItem({
         type: newPortfolioItem.type,
         url: newPortfolioItem.url,
-        title: newPortfolioItem.title || undefined,
-        description: newPortfolioItem.description || undefined,
-        category: newPortfolioItem.category,
+        title: newPortfolioItem.title,
+        description: newPortfolioItem.description,
+        category: newPortfolioItem.category || undefined,
       });
       setNewPortfolioItem({
         type: "image",
         url: "",
         title: "",
         description: "",
-        category: "all",
+        category: "",
       });
+      setImageMode("url");
       await loadData();
       toast({ title: "Portfolio item added" });
     } catch {
@@ -298,10 +333,6 @@ export default function AdminPage() {
   };
 
   const handleDeleteCategory = async (name: string) => {
-    if (name === "all") {
-      toast({ title: "Cannot delete 'all' category", variant: "destructive" });
-      return;
-    }
     try {
       await deleteCategory(name);
       await loadData();
@@ -660,13 +691,18 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Type + Category row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="font-body">Type</Label>
                     <Select
                       value={newPortfolioItem.type}
                       onValueChange={(v: "image" | "video") =>
-                        setNewPortfolioItem({ ...newPortfolioItem, type: v })
+                        setNewPortfolioItem({
+                          ...newPortfolioItem,
+                          type: v,
+                          url: "",
+                        })
                       }
                     >
                       <SelectTrigger className="font-body">
@@ -683,7 +719,105 @@ export default function AdminPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-body">URL *</Label>
+                    <Label className="font-body">Category</Label>
+                    <Select
+                      value={newPortfolioItem.category || "__none__"}
+                      onValueChange={(v) =>
+                        setNewPortfolioItem({
+                          ...newPortfolioItem,
+                          category: v === "__none__" ? "" : v,
+                        })
+                      }
+                    >
+                      <SelectTrigger className="font-body">
+                        <SelectValue placeholder="None" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__" className="font-body">
+                          None
+                        </SelectItem>
+                        {categories
+                          .filter((c) => c !== "all")
+                          .map((cat) => (
+                            <SelectItem
+                              key={cat}
+                              value={cat}
+                              className="font-body"
+                            >
+                              {cat}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* URL/Upload */}
+                {newPortfolioItem.type === "image" ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1 rounded-md border border-input bg-muted/30 p-1 w-fit">
+                      <Button
+                        type="button"
+                        variant={imageMode === "url" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setImageMode("url")}
+                        className="h-7 px-3 font-body text-xs gap-1.5"
+                      >
+                        <Link2 className="w-3 h-3" />
+                        URL
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={imageMode === "upload" ? "secondary" : "ghost"}
+                        size="sm"
+                        onClick={() => setImageMode("upload")}
+                        className="h-7 px-3 font-body text-xs gap-1.5"
+                      >
+                        <Upload className="w-3 h-3" />
+                        Upload
+                      </Button>
+                    </div>
+                    {imageMode === "url" ? (
+                      <Input
+                        value={newPortfolioItem.url}
+                        onChange={(e) =>
+                          setNewPortfolioItem({
+                            ...newPortfolioItem,
+                            url: e.target.value,
+                          })
+                        }
+                        placeholder="https://example.com/image.jpg"
+                        className="font-body"
+                      />
+                    ) : (
+                      <div className="space-y-2">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          className="font-body cursor-pointer"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(file);
+                          }}
+                          disabled={isUploadingImage}
+                        />
+                        {isUploadingImage && (
+                          <p className="text-xs text-muted-foreground font-body flex items-center gap-1.5">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Uploading to Cloudinary...
+                          </p>
+                        )}
+                        {newPortfolioItem.url && (
+                          <p className="text-xs text-green-600 dark:text-green-400 font-body truncate">
+                            ✓ {newPortfolioItem.url}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label className="font-body">YouTube URL *</Label>
                     <Input
                       value={newPortfolioItem.url}
                       onChange={(e) =>
@@ -692,15 +826,16 @@ export default function AdminPage() {
                           url: e.target.value,
                         })
                       }
-                      placeholder="https://..."
+                      placeholder="https://www.youtube.com/watch?v=..."
                       className="font-body"
                     />
                   </div>
+                )}
+
+                {/* Title + Description */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="font-body">
-                      Title{" "}
-                      <span className="text-muted-foreground">(optional)</span>
-                    </Label>
+                    <Label className="font-body">Title *</Label>
                     <Input
                       value={newPortfolioItem.title}
                       onChange={(e) =>
@@ -709,14 +844,12 @@ export default function AdminPage() {
                           title: e.target.value,
                         })
                       }
+                      placeholder="Item title"
                       className="font-body"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-body">
-                      Description{" "}
-                      <span className="text-muted-foreground">(optional)</span>
-                    </Label>
+                    <Label className="font-body">Description *</Label>
                     <Input
                       value={newPortfolioItem.description}
                       onChange={(e) =>
@@ -725,38 +858,17 @@ export default function AdminPage() {
                           description: e.target.value,
                         })
                       }
+                      placeholder="Brief description"
                       className="font-body"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="font-body">Category</Label>
-                    <Select
-                      value={newPortfolioItem.category}
-                      onValueChange={(v) =>
-                        setNewPortfolioItem({
-                          ...newPortfolioItem,
-                          category: v,
-                        })
-                      }
-                    >
-                      <SelectTrigger className="font-body">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem
-                            key={cat}
-                            value={cat}
-                            className="font-body"
-                          >
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
-                <Button onClick={handleAddPortfolioItem} className="font-body">
+
+                <Button
+                  onClick={handleAddPortfolioItem}
+                  className="font-body"
+                  disabled={isUploadingImage}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Item
                 </Button>
@@ -861,16 +973,14 @@ export default function AdminPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 border rounded-full bg-muted/30 hover:bg-muted/50 transition-colors"
                     >
                       <span className="font-body text-sm">{cat}</span>
-                      {cat !== "all" && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteCategory(cat)}
-                          className="h-auto w-auto p-0.5 hover:bg-destructive/20 hover:text-destructive rounded-full"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteCategory(cat)}
+                        className="h-auto w-auto p-0.5 hover:bg-destructive/20 hover:text-destructive rounded-full"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -885,12 +995,11 @@ export default function AdminPage() {
                 <CardTitle className="font-display text-lg">About Me</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Textarea
+                <MarkdownEditor
                   value={aboutMe}
-                  onChange={(e) => setAboutMe(e.target.value)}
-                  rows={6}
-                  className="font-body resize-none"
-                  placeholder="Write about yourself..."
+                  onChange={setAboutMe}
+                  placeholder="Write about yourself in Markdown..."
+                  rows={10}
                 />
                 <Button onClick={handleSaveAboutMe} className="font-body">
                   <Save className="w-4 h-4 mr-2" />
@@ -906,12 +1015,11 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Textarea
+                <MarkdownEditor
                   value={portfolio}
-                  onChange={(e) => setPortfolio(e.target.value)}
-                  rows={6}
-                  className="font-body resize-none"
-                  placeholder="Describe your portfolio..."
+                  onChange={setPortfolio}
+                  placeholder="Describe your portfolio in Markdown..."
+                  rows={8}
                 />
                 <Button onClick={handleSavePortfolio} className="font-body">
                   <Save className="w-4 h-4 mr-2" />

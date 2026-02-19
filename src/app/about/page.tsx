@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getSettings } from "@/lib/api-client";
 
 export default function AboutPage() {
   const [aboutMe, setAboutMe] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     getSettings()
@@ -15,7 +18,8 @@ export default function AboutPage() {
       })
       .catch((error) => {
         console.error("Error loading settings:", error);
-      });
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   return (
@@ -34,9 +38,22 @@ export default function AboutPage() {
           className="max-w-2xl mx-auto text-center opacity-0 animate-fade-in-up delay-200"
           style={{ animationFillMode: "forwards" }}
         >
-          <p className="text-muted-foreground font-body leading-relaxed text-lg">
-            {aboutMe}
-          </p>
+          {isLoading ? (
+            <div className="space-y-3">
+              <div className="h-4 bg-muted rounded animate-pulse w-3/4 mx-auto" />
+              <div className="h-4 bg-muted rounded animate-pulse w-full" />
+              <div className="h-4 bg-muted rounded animate-pulse w-5/6 mx-auto" />
+              <div className="h-4 bg-muted rounded animate-pulse w-2/3 mx-auto" />
+              <div className="h-4 bg-muted rounded animate-pulse w-full" />
+              <div className="h-4 bg-muted rounded animate-pulse w-4/5 mx-auto" />
+            </div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none font-body text-muted-foreground [&_*]:mx-auto">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {aboutMe}
+              </ReactMarkdown>
+            </div>
+          )}
         </div>
       </main>
 

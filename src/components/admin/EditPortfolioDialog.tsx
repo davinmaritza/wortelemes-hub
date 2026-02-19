@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Pencil, Image, Video } from "lucide-react";
+import { Pencil, Link2, Upload, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,23 +31,17 @@ interface EditPortfolioDialogProps {
   onUpdate: () => void;
 }
 
-const categoryLabels: Record<string, string> = {
-  all: "All",
-  VideoCommish: "Video Commish",
-  GTACommish: "GTA Commish",
-  "GTACommish/Vehicle": "GTA Commish - Vehicle",
-  "GTACommish/Outfits": "GTA Commish - Outfits",
-};
-
 const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
   const [open, setOpen] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
+  const [imageMode, setImageMode] = useState<"url" | "upload">("url");
+  const [isUploading, setIsUploading] = useState(false);
   const [editData, setEditData] = useState({
     type: item.type,
     url: item.url,
     title: item.title || "",
     description: item.description || "",
-    category: item.category || "all",
+    category: item.category || "",
   });
   const { toast } = useToast();
 
@@ -59,23 +53,52 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
         url: item.url,
         title: item.title || "",
         description: item.description || "",
-        category: item.category || "all",
+        category: item.category || "",
       });
+      setImageMode("url");
     }
   }, [open, item]);
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setEditData((prev) => ({ ...prev, url: data.url }));
+      toast({ title: "Image uploaded" });
+    } catch {
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!editData.url) {
       toast({ title: "URL is required", variant: "destructive" });
       return;
     }
+    if (!editData.title) {
+      toast({ title: "Title is required", variant: "destructive" });
+      return;
+    }
+    if (!editData.description) {
+      toast({ title: "Description is required", variant: "destructive" });
+      return;
+    }
     try {
       await updatePortfolioItem(item.id, {
         type: editData.type,
         url: editData.url,
-        title: editData.title || null,
-        description: editData.description || null,
-        category: editData.category,
+        title: editData.title,
+        description: editData.description,
+        category: editData.category || null,
       });
       toast({ title: "Portfolio item updated" });
       setOpen(false);
@@ -92,57 +115,121 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
           <Pencil className="w-4 h-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display">
             Edit Portfolio Item
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="flex gap-4">
-            <Button
-              variant={editData.type === "image" ? "default" : "outline"}
-              onClick={() =>
-                setEditData((prev) => ({ ...prev, type: "image" }))
-              }
-              className="font-body"
-            >
-              <Image className="w-4 h-4 mr-2" /> Image
-            </Button>
-            <Button
-              variant={editData.type === "video" ? "default" : "outline"}
-              onClick={() =>
-                setEditData((prev) => ({ ...prev, type: "video" }))
-              }
-              className="font-body"
-            >
-              <Video className="w-4 h-4 mr-2" /> Video
-            </Button>
+        <div className="space-y-4 py-2">
+          {/* Type */}
+          <div className="space-y-2">
+            <Label className="font-body">Type</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={editData.type === "image" ? "default" : "outline"}
+                size="sm"
+                onClick={() =>
+                  setEditData((prev) => ({ ...prev, type: "image", url: "" }))
+                }
+                className="font-body"
+              >
+                Image
+              </Button>
+              <Button
+                type="button"
+                variant={editData.type === "video" ? "default" : "outline"}
+                size="sm"
+                onClick={() =>
+                  setEditData((prev) => ({ ...prev, type: "video", url: "" }))
+                }
+                className="font-body"
+              >
+                Video
+              </Button>
+            </div>
           </div>
-          <div>
-            <Label htmlFor="editUrl" className="font-body">
-              {editData.type === "image" ? "Image URL *" : "YouTube URL *"}
-            </Label>
+
+          {/* URL / Upload */}
+          {editData.type === "image" ? (
+            <div className="space-y-2">
+              <Label className="font-body">Image *</Label>
+              <div className="flex items-center gap-1 rounded-md border border-input bg-muted/30 p-1 w-fit mb-2">
+                <Button
+                  type="button"
+                  variant={imageMode === "url" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setImageMode("url")}
+                  className="h-7 px-3 font-body text-xs gap-1.5"
+                >
+                  <Link2 className="w-3 h-3" />
+                  URL
+                </Button>
+                <Button
+                  type="button"
+                  variant={imageMode === "upload" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setImageMode("upload")}
+                  className="h-7 px-3 font-body text-xs gap-1.5"
+                >
+                  <Upload className="w-3 h-3" />
+                  Upload
+                </Button>
+              </div>
+              {imageMode === "url" ? (
+                <Input
+                  value={editData.url}
+                  onChange={(e) =>
+                    setEditData((prev) => ({ ...prev, url: e.target.value }))
+                  }
+                  placeholder="https://example.com/image.jpg"
+                  className="font-body"
+                />
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="font-body cursor-pointer"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                    disabled={isUploading}
+                  />
+                  {isUploading && (
+                    <p className="text-xs text-muted-foreground font-body flex items-center gap-1.5">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Uploading to Cloudinary...
+                    </p>
+                  )}
+                  {editData.url && (
+                    <p className="text-xs text-green-600 dark:text-green-400 font-body truncate">
+                      ✓ {editData.url}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label className="font-body">YouTube URL *</Label>
+              <Input
+                value={editData.url}
+                onChange={(e) =>
+                  setEditData((prev) => ({ ...prev, url: e.target.value }))
+                }
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="font-body"
+              />
+            </div>
+          )}
+
+          {/* Title */}
+          <div className="space-y-2">
+            <Label className="font-body">Title *</Label>
             <Input
-              id="editUrl"
-              value={editData.url}
-              onChange={(e) =>
-                setEditData((prev) => ({ ...prev, url: e.target.value }))
-              }
-              placeholder={
-                editData.type === "image"
-                  ? "https://example.com/image.jpg"
-                  : "https://www.youtube.com/watch?v=..."
-              }
-              className="font-body"
-            />
-          </div>
-          <div>
-            <Label htmlFor="editTitle" className="font-body">
-              Title (optional)
-            </Label>
-            <Input
-              id="editTitle"
               value={editData.title}
               onChange={(e) =>
                 setEditData((prev) => ({ ...prev, title: e.target.value }))
@@ -151,34 +238,11 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
               className="font-body"
             />
           </div>
-          <div>
-            <Label htmlFor="editCategory" className="font-body">
-              Category
-            </Label>
-            <Select
-              value={editData.category}
-              onValueChange={(value) =>
-                setEditData((prev) => ({ ...prev, category: value }))
-              }
-            >
-              <SelectTrigger className="font-body">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {categoryLabels[cat] || cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="editDesc" className="font-body">
-              Description (optional)
-            </Label>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label className="font-body">Description *</Label>
             <Input
-              id="editDesc"
               value={editData.description}
               onChange={(e) =>
                 setEditData((prev) => ({
@@ -190,7 +254,38 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
               className="font-body"
             />
           </div>
-          <div className="flex justify-end gap-2">
+
+          {/* Category */}
+          <div className="space-y-2">
+            <Label className="font-body">Category</Label>
+            <Select
+              value={editData.category || "__none__"}
+              onValueChange={(value) =>
+                setEditData((prev) => ({
+                  ...prev,
+                  category: value === "__none__" ? "" : value,
+                }))
+              }
+            >
+              <SelectTrigger className="font-body">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="font-body">
+                  None
+                </SelectItem>
+                {categories
+                  .filter((c) => c !== "all")
+                  .map((cat) => (
+                    <SelectItem key={cat} value={cat} className="font-body">
+                      {cat}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="outline"
               onClick={() => setOpen(false)}
@@ -198,7 +293,11 @@ const EditPortfolioDialog = ({ item, onUpdate }: EditPortfolioDialogProps) => {
             >
               Cancel
             </Button>
-            <Button onClick={handleSave} className="font-body">
+            <Button
+              onClick={handleSave}
+              disabled={isUploading}
+              className="font-body"
+            >
               Save Changes
             </Button>
           </div>

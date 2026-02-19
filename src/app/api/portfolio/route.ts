@@ -33,6 +33,15 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
+    }
+    if (!description) {
+      return NextResponse.json(
+        { error: "Description is required" },
+        { status: 400 },
+      );
+    }
 
     const item = await prisma.portfolioItem.create({
       data: {
@@ -40,7 +49,7 @@ export async function POST(request: NextRequest) {
         url,
         title,
         description,
-        category,
+        category: category || null,
       },
     });
 
