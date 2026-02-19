@@ -831,8 +831,8 @@ export default function AdminPage() {
                                 isUploadingImage
                                   ? "grayscale"
                                   : uploadComplete
-                                  ? "grayscale-0"
-                                  : "grayscale"
+                                    ? "grayscale-0"
+                                    : "grayscale"
                               }`}
                             >
                               <img
@@ -844,7 +844,9 @@ export default function AdminPage() {
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                                   <div className="flex flex-col items-center gap-2">
                                     <Loader2 className="w-6 h-6 text-white animate-spin" />
-                                    <span className="text-xs text-white font-body">Uploading...</span>
+                                    <span className="text-xs text-white font-body">
+                                      Uploading...
+                                    </span>
                                   </div>
                                 </div>
                               )}
